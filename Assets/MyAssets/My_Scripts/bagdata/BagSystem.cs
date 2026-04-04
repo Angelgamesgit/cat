@@ -2,26 +2,29 @@ using UnityEngine;
 
 public class BagSystem : MonoBehaviour
 {
-  void UISystemOpen(Item item)
+    GameObject itempickedUI;
+void UISystemOpen(BagItemData item)
     {
-        
+
     }
-    void uisysbutton()
+    void uisysbutton(BagItemData item)
     {
-    Spawn.getcomponent<SpriteRenderer>().sprite = item.itemSprite;
+        //スポナーの画像を変更して動かす
+        //落とすときには別のオブジェクトを生成する
+        GameObject spawner = GameObject.Find("Spawner");
+        spawner.GetComponent<SpriteRenderer>().sprite = item.icon;
         //動かす
     }
 
     void otosu()
     {
         //アイテムを落とす
-        Instantiate(item, spawner.transform.position, Quaternion.identity);
+        GameObject items = Instantiate(item, spawner.transform.position, Quaternion.identity);
     }
+
     void uisysclose()
     {
         //UIをOffにする
         itempickedUI.SetActive(false);
     }
-
-    UI関連はまとめてある;
 }
