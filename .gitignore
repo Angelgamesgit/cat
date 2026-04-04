@@ -1,0 +1,7 @@
+*
+!*/
+!Assets/
+!Assets/MyAssets/
+!Assets/MyAssets/**/*.cs
+!Assets/MyAssets/**/*.meta
+!.gitignore
