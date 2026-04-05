@@ -8,13 +8,10 @@ public class Bag_PickedSystem : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
         void StartBagMiniGame()
     {
-        
-
         gameObject.SetActive(false);
     }
     void OnTriggerEnter(Collider other)
     {
-
         if (picked) return;
         StartBagMiniGame();
         if (other.CompareTag("Item"))

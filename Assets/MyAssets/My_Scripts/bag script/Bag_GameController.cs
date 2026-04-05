@@ -20,6 +20,7 @@ public class Bag_GameController : MonoBehaviour
 
     [Header("Test")]
     public Bag_ItemData[] testItem;
+    public GameObject bag2D;
 
     void Awake()
     {
@@ -30,14 +31,12 @@ public class Bag_GameController : MonoBehaviour
         }
 
         Instance = this;
-
         Debug.Log("[BagGame] Controller Awake");
     }
 
     void Start()
     {
         overflowLine.OnOverflow += Fail;
-
         Debug.Log("[BagGame] Start OK");
     }
 
@@ -59,9 +58,9 @@ public class Bag_GameController : MonoBehaviour
         result = BagResult.Success;
         playing = true;
 
-        gameObject.SetActive(true);
-
+        bag2D.SetActive(true);
         spawner.TrySpawn(item);
+        spawner.GetComponent<SpriteRenderer>().sprite = item.icon;
     }
 
     void Fail()
