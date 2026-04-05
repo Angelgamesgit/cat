@@ -12,10 +12,6 @@ public class PlayerData : ScriptableObject
 
     public SphereSpec currentSphereSpec;
 
-    public Dictionary<Item.ItemType, int> itemCount;
-    
-    public Dictionary<Ornament, long> ornamentTimeData;
-
 
     public enum BagType
     {
@@ -35,40 +31,19 @@ public BagType currentBagType;
     [ContextMenu("LoadPlayerdata")]
     public void Load()
     {
-        if (itemCount == null)
-        {
-            itemCount = new Dictionary<Item.ItemType, int>();
-        }
-        if (ornamentTimeData == null)
-        {
-            ornamentTimeData = new Dictionary<Ornament, long>();
-        }
-        ES3.Load<PlayerData>(name, this);
-        Debug.Log("Load Complete");
+       
     }
 
     //
-    public void AddItem(Item.ItemType itemType, int num)
+    public void AddItem(
+
+    )
     {
-        if (itemCount.ContainsKey(itemType))
-        {
-            itemCount[itemType] += num;
-        }
-        else
-        {
-            itemCount.Add(itemType, num);
-            UnityEngine.Debug.Log("NewGetItem");
-        }
+     
         Save();
     }
-    public void RemoveItem(Item.ItemType itemType)
+    public void RemoveItem()
     {
-        if (itemCount.ContainsKey(itemType))
-        {
-            itemCount[itemType]--;
-        }
-        //含まれていない場合何かエラーがある
-        else
         {
             Debug.Log("NoItem");
         }

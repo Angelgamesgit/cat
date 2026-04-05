@@ -107,8 +107,7 @@ private bool isFlicking;
     DaySphereSystem daySphereSystem;
     [SerializeField]
     WeatherSystem weatherSystem;
-    [SerializeField]
-    ItemSystem itemSystem;
+
 
     public CatData findCatData;
 
@@ -439,7 +438,6 @@ public void TouchSystem()
                 if (getTreasureBox.Contains(hit.collider)) continue;
                 hit.collider.gameObject.GetComponent<Animator>().SetTrigger("open");
                 getTreasureBox.Add(hit.collider);
-                itemSystem.newItemGet();
             }
 
             finalHit = hit;

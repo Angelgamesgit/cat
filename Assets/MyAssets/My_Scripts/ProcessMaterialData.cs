@@ -10,7 +10,6 @@ public class ProcessMaterialData : MonoBehaviour
 
     [Tooltip("処理する Scriptable Objectのリスト")]
     public List<CatData> catDataList;
-    public List<Garden_ItemSO> gardenItemList; //Garden に置くアイテム
 
     public List<SphereSpec> sphereDataList; // Sphere のデータ
 

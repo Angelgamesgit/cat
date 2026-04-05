@@ -242,12 +242,7 @@ public class ProcessMaterialDataEditor : Editor
             return;
         }
 
-        if (myScript.gardenItemList == null || myScript.gardenItemList.Count == 0)
-        {
-            Debug.LogWarning("処理する  Data がリストにありません。");
-            return;
-        }
-
+      
         // テクスチャー保存フォルダが存在するか確認し、なければ作成
         string fullSaveFolderPath = Path.Combine("Assets", myScript.textureSaveFolderPath.Replace("Assets/", ""));
         if (!AssetDatabase.IsValidFolder(fullSaveFolderPath))
@@ -303,7 +298,7 @@ public class ProcessMaterialDataEditor : Editor
         mainCamera.clearFlags = CameraClearFlags.SolidColor;
         mainCamera.backgroundColor = transparentColor;
 
-        // リストの各MaterialDataを処理
+        /* リストの各MaterialDataを処理
         for (int i = 0; i < myScript.gardenItemList.Count; i++)
         {
 
@@ -424,7 +419,10 @@ public class ProcessMaterialDataEditor : Editor
         SceneView.RepaintAll();
 
         Debug.Log("--- 全ての ObjectData (item data)の処理が完了しました (Texture2D 保存) ---");
+
+         */
     }
+
     /// <summary>
     /// 指定されたオブジェクトとそのすべての子要素がカメラに収まるように調整します。
     /// Particle Systemを持つオブジェクトはサイズ計算から除外されます。
