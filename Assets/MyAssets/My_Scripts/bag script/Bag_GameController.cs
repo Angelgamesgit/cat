@@ -12,7 +12,7 @@ public class Bag_GameController : MonoBehaviour
 
     [Header("Systems")]
     public Bag_Spawner spawner;
-    public Bag_GameOverLine overflowLine;
+
 
     [Header("Debug")]
     public bool playing;
@@ -36,13 +36,13 @@ public class Bag_GameController : MonoBehaviour
 
     void Start()
     {
-        overflowLine.OnOverflow += Fail;
+        // overflowLine.OnOverflow += Fail;
         Debug.Log("[BagGame] Start OK");
     }
 
     void Update()
     {
-        // Editor / Android両方でテスト可能
+        // Editor ＆ Android両方でテスト可能
         if (Input.GetKeyDown(KeyCode.B))
         {
             Debug.Log("[BagGame] Debug Spawn");
@@ -50,7 +50,7 @@ public class Bag_GameController : MonoBehaviour
             OpenBag(testItem[Random.Range(0, testItem.Length)]);
         }
     }
-
+//アイテムを拾うときに呼ばれる関数。Bag_ItemDataを渡すとバッグが開いてアイテムがスポーンする
     public void OpenBag(Bag_ItemData item)
     {
         Debug.Log("[BagGame] OpenBag : " + item.itemName);
@@ -62,16 +62,14 @@ public class Bag_GameController : MonoBehaviour
         spawner.TrySpawn(item);
         spawner.GetComponent<SpriteRenderer>().sprite = item.icon;
     }
-
+//バッグがいっぱいになったときに呼ばれる関数。バッグオーバーフローの処理を行う　ラインのイベントから呼ばれる
     void Fail()
     {
         Debug.Log("[BagGame] BAG OVERFLOW");
 
         result = BagResult.Failed;
-
-        CloseBag();
     }
-
+//ボタンを押すと呼ばれる関数。バッグを閉じる処理を行う　バッグのUIから呼ばれる
     public void CloseBag()
     {
         Debug.Log("[BagGame] CloseBag Result = " + result);
