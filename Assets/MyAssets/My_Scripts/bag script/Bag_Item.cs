@@ -41,4 +41,10 @@ public class Bag_Item : MonoBehaviour
     {
         merged = true;
     }
+    //動きが停止した時にほかのスクリプトに通知する関数
+    public void NotifyStopped()
+    {
+        Debug.Log("[BagItem] Stopped : " + Data.itemName);
+        
+    }
 }

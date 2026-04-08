@@ -13,7 +13,6 @@ public class Bag_GameController : MonoBehaviour
     [Header("Systems")]
     public Bag_Spawner spawner;
 
-
     [Header("Debug")]
     public bool playing;
     public BagResult result;
@@ -29,7 +28,6 @@ public class Bag_GameController : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
         Debug.Log("[BagGame] Controller Awake");
     }
@@ -46,7 +44,6 @@ public class Bag_GameController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.B))
         {
             Debug.Log("[BagGame] Debug Spawn");
-
             OpenBag(testItem[Random.Range(0, testItem.Length)]);
         }
     }
@@ -75,7 +72,6 @@ public class Bag_GameController : MonoBehaviour
         Debug.Log("[BagGame] CloseBag Result = " + result);
 
         playing = false;
-
         Bag_EventBridge.NotifyBagClosed(result);
     }
 }

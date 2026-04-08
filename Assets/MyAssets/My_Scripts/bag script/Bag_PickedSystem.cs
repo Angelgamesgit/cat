@@ -23,4 +23,9 @@ public class Bag_PickedSystem : MonoBehaviour
 
         }
     }
+    void HandleBagClosed(Bag_GameController.BagResult result)
+{
+    Debug.Log("バッグ閉じた：" + result);
+    picked = false; // アイテムが拾われていない状態に戻す
+}
 }
