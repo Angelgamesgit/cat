@@ -33,7 +33,6 @@ public class Bag_Item : MonoBehaviour
         if (other.merged) return;
 
         Debug.Log("[BagItem] Merge " + Data.itemName);
-
         Bag_MergeSystem.Instance.TryMerge(this, other);
     }
 
@@ -45,6 +44,5 @@ public class Bag_Item : MonoBehaviour
     public void NotifyStopped()
     {
         Debug.Log("[BagItem] Stopped : " + Data.itemName);
-        
     }
 }

@@ -10,8 +10,6 @@ public class Bag_GameController : MonoBehaviour
 
     public static Bag_GameController Instance;
 
-    [Header("Systems")]
-    public Bag_Spawner spawner;
 
     [Header("Debug")]
     public bool playing;
@@ -56,8 +54,8 @@ public class Bag_GameController : MonoBehaviour
         playing = true;
 
         bag2D.SetActive(true);
-        spawner.TrySpawn(item);
-        spawner.GetComponent<SpriteRenderer>().sprite = item.icon;
+        Debug.Log("未着手の箇所です アイテムのスポーン処理を実装してください");
+
     }
 //バッグがいっぱいになったときに呼ばれる関数。バッグオーバーフローの処理を行う　ラインのイベントから呼ばれる
     void Fail()

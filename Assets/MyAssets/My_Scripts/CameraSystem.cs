@@ -39,12 +39,10 @@ public class CameraSystem : MonoBehaviour
 
         mainCamera.enabled = !enableSubCamera;
         subCamera.enabled = enableSubCamera;
-        
+
+
         mainCamera.tag = Tag[!enableSubCamera];
         subCamera.tag = Tag[enableSubCamera];
-        
         canvas.worldCamera = enableSubCamera ? subCamera : mainCamera;
-
-     }
-    
+        }
 }
