@@ -1,24 +1,33 @@
+using System;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using Random = UnityEngine.Random;
+using UnityEditor;
+using Unity.Mathematics;
 
 public class Bag_GameController : MonoBehaviour
 {
-    public enum BagResult
+    public enum BagState
     {
-        Success,
-        Failed
+        Close, // 待機中
+        Open, // バッグオープン中
     }
 
     public static Bag_GameController Instance;
 
 
     [Header("Debug")]
-    public bool playing;
-    public BagResult result;
+
+    public BagState state;
 
     [Header("Test")]
     public Bag_ItemData[] testItem;
-    public GameObject bag2D;
+    [SerializeField] GameObject bagUI;
 
+    [SerializeField] GameObject overflowLine;
+    [SerializeField] GameObject spawnItemPrefab;
+    [SerializeField] Transform spawnTransform;
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -32,44 +41,37 @@ public class Bag_GameController : MonoBehaviour
 
     void Start()
     {
-        // overflowLine.OnOverflow += Fail;
-        Debug.Log("[BagGame] Start OK");
+
     }
 
     void Update()
     {
-        // Editor ＆ Android両方でテスト可能
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            Debug.Log("[BagGame] Debug Spawn");
-            OpenBag(testItem[Random.Range(0, testItem.Length)]);
-        }
     }
 //アイテムを拾うときに呼ばれる関数。Bag_ItemDataを渡すとバッグが開いてアイテムがスポーンする
     public void OpenBag(Bag_ItemData item)
     {
         Debug.Log("[BagGame] OpenBag : " + item.itemName);
 
-        result = BagResult.Success;
-        playing = true;
-
-        bag2D.SetActive(true);
-        Debug.Log("未着手の箇所です アイテムのスポーン処理を実装してください");
-
+        state = BagState.Open;
+        bagUI.SetActive(true);
+        GameObject obj = Instantiate(spawnItemPrefab,spawnTransform);
+        obj.GetComponent<RectTransform>().anchoredPosition = spawnTransform.GetComponent<RectTransform>().anchoredPosition;
+        obj.GetComponent<Bag_Item>().Initialize(item);
     }
 //バッグがいっぱいになったときに呼ばれる関数。バッグオーバーフローの処理を行う　ラインのイベントから呼ばれる
     void Fail()
     {
         Debug.Log("[BagGame] BAG OVERFLOW");
 
-        result = BagResult.Failed;
+        state = BagState.Close;
     }
 //ボタンを押すと呼ばれる関数。バッグを閉じる処理を行う　バッグのUIから呼ばれる
     public void CloseBag()
     {
-        Debug.Log("[BagGame] CloseBag Result = " + result);
+        Debug.Log("[BagGame] CloseBag State = " + state);
 
-        playing = false;
-        Bag_EventBridge.NotifyBagClosed(result);
+        state = BagState.Close;
+        Bag_EventBridge.NotifyBagClosed(state);
+        bagUI.SetActive(false);
     }
 }

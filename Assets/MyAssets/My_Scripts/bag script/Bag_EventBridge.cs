@@ -2,13 +2,13 @@ using System;
 
 public static class Bag_EventBridge
 {
-    public static Action<Bag_GameController.BagResult> OnBagClosed;
+    public static Action<Bag_GameController.BagState> OnBagClosed;
 
-    public static void NotifyBagClosed(Bag_GameController.BagResult result)
+    public static void NotifyBagClosed(Bag_GameController.BagState state)
     {
-        OnBagClosed?.Invoke(result);
+        OnBagClosed?.Invoke(state);
     }
-    public static void SubscribeBagClosed(Action<Bag_GameController.BagResult> callback)
+    public static void SubscribeBagClosed(Action<Bag_GameController.BagState> callback)
     {
         OnBagClosed += callback;
     }
