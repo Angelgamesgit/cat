@@ -177,10 +177,7 @@ public class CatSystem : MonoBehaviour
     /// </summary>
     public float CalculateSpeedRatio(float dist)
     {
-        // 停止距離より近い、かつジョイスティック入力がなければ停止
-        if (dist < mindistance && !system.joystickmove) return 0.0f;
-
-        // 走行距離より遠ければ最高速
+       // 走行距離より遠ければ最高速
         if (dist >= rundistance) return 1.0f;
 
         // mindistanceとrundistanceの間を線形補間

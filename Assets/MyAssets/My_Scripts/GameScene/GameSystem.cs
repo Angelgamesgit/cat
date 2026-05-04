@@ -4,6 +4,7 @@ using System.Collections;
 using Random = UnityEngine.Random;
 using DG.Tweening;
 using System.Linq;
+using Unity.VisualScripting;
 
 //  UI判定に必要
 public class GameSystem : MonoBehaviour
@@ -93,26 +94,26 @@ private bool isFlicking;
 
     [SerializeField]
     FindCat findCat;
+    public CatData findCatData;
 
-   
+    public enum MissionState
+    {
+        None,
+        Play,
+    }
+ public static MissionState missionState = MissionState.None;
     //画面上のタッチを終了し、画面の真ん中に戻すための位置情報
     Vector3 mainTargetPos;
 
     //猫が追いかけるターゲットのオブジェクトが指定の位置にあるかをチェック　タッチで場所を変えた場合は猫とターゲットの最低距離をなくす
     // ▼▼▼ 変更点: targetObjMoveフラグは新しいロジックでは不要となるためコメントアウト ▼▼▼
-    // public bool targetObjMove; 
+    // public bool targetObjMove;
     // ▲▲▲ 変更点終了 ▲▲▲
-    public bool joystickmove;
     [SerializeField]
     DaySphereSystem daySphereSystem;
     [SerializeField]
     WeatherSystem weatherSystem;
 
-
-    public CatData findCatData;
-
-    List<Collider> getTreasureBox;
-    
     public GameObject kitchenObject;
 
     void Start()
@@ -130,7 +131,6 @@ private bool isFlicking;
         targetObject.transform.position = targetPositionOnSurface;
         targetObject.transform.up = (targetObject.transform.position - sphere.transform.position).normalized;
         mainTargetPos = targetObject.transform.position;
-        getTreasureBox = new List<Collider>();
         kitchenObject = GameObject.FindGameObjectWithTag("Kitchen");
 
         // UIの初期化
@@ -147,7 +147,6 @@ private bool isFlicking;
         layerMask = 1 << LayerMask.NameToLayer("Object"); ; // -1 は全てのレイヤー
         originalMaterials = new Dictionary<Renderer, Material[]>();
         currentlyObstructedRenderers = new HashSet<Renderer>();
-        joystickmove = false;
         flickFrameThreshold = 10; // 10フレームで判定
     }
 
@@ -431,14 +430,6 @@ public void TouchSystem()
         foreach (RaycastHit hit in allHits)
         {
             if (hit.collider.CompareTag("Untagged")) continue;
-            
-            // 宝箱などのギミック処理
-            if (hit.collider.gameObject.CompareTag("Treasure"))
-            {
-                if (getTreasureBox.Contains(hit.collider)) continue;
-                hit.collider.gameObject.GetComponent<Animator>().SetTrigger("open");
-                getTreasureBox.Add(hit.collider);
-            }
 
             finalHit = hit;
             foundValidTarget = true;
