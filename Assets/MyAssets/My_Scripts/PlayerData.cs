@@ -12,6 +12,7 @@ public class PlayerData : ScriptableObject
 
     public SphereSpec currentSphereSpec;
 
+public FoodData currentFoodData;
 
     public enum BagType
     {
@@ -31,15 +32,18 @@ public BagType currentBagType;
     [ContextMenu("LoadPlayerdata")]
     public void Load()
     {
-       
+
     }
 
     //
-    public void AddItem(
-
-    )
+    public void ChangeCurrentFoodData(FoodData newFoodData)
     {
-     
+        currentFoodData = newFoodData;
+        Save();
+    }
+    public void ChangeCurrentBagType(BagType newBagType)
+    {
+        currentBagType = newBagType;
         Save();
     }
     public void RemoveItem()

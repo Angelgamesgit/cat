@@ -11,6 +11,9 @@ public class GameSystem : MonoBehaviour
 {
     public bool GamePlaying;
     public PlayerData playerData;
+    
+    public FoodDeliverySystem foodDeliverySystem;
+    public FoodDeliveryUISystem foodDeliveryUISystem;
 
     [SerializeField]
     GameObject catTargetObject;
@@ -101,7 +104,7 @@ private bool isFlicking;
         None,
         Play,
     }
- public static MissionState missionState = MissionState.None;
+public static MissionState missionState = MissionState.None;
     //画面上のタッチを終了し、画面の真ん中に戻すための位置情報
     Vector3 mainTargetPos;
 
@@ -125,7 +128,7 @@ private bool isFlicking;
         // cameraPosとcameraRotationはSphereSetで初期化される
         playerData.Load();
         SphereSet(playerData.currentSphereSpec);
-
+        foodDeliverySystem = FindFirstObjectByType<FoodDeliverySystem>();
         Vector3 directionFromSphereCenterToObject = (targetObject.transform.position - sphere.transform.position).normalized;
         Vector3 targetPositionOnSurface = sphere.transform.position + (directionFromSphereCenterToObject * (sphereCollider.radius * sphere.transform.localScale.y));
         targetObject.transform.position = targetPositionOnSurface;
@@ -221,8 +224,30 @@ private bool isFlicking;
         BetweenCameraAndObject();
         ShowSurfaceDirectionToTarget();
         HandleCameraLookOrTouch(); // フレーム数による判定メソッドを呼び出し
+        if (Input.GetMouseButtonDown(0))
+    {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            // 当たった相手がを持っていれば実行
+            if (hit.collider.tag == "MissionBoard")
+            {
+                Debug.Log("ミッションボードをタッチ");
+             MissionSelectSystem.missionSelectSystem.MissionSelect(); // ミッション選択システムの関数を呼び出す
+            }
+            if (hit.collider.tag == "Food")
+            {
+                Debug.Log("食べ物をタッチ");
+                Food food = hit.collider.GetComponent<Food>();
+                if (food != null)
+                {
+                    food.GetFood(this); // 食べ物のGetFoodメソッドを呼び出す
+                }
+            }
+        }
     }
-   
+    }
+
 void HandleCameraLookOrTouch()
 {
     // 指が触れた瞬間
@@ -467,6 +492,9 @@ public void TouchSystem()
             RotateSphereToFaceTarget();
         }
     }
+// 画面をタッチした瞬間に、タッチ位置からカメラに向かってレイを飛ばし、最初に当たったオブジェクトを処理する
+
+   
 }
     // --- RotateSphereToFaceTarget メソッドの修正・追加 ---
 /// <summary>

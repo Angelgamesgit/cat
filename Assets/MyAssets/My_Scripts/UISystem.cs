@@ -11,6 +11,9 @@ using Random = UnityEngine.Random;
 
 public class UISystem : MonoBehaviour
 {
+
+    public static UISystem Instance { get; private set; }
+
     [SerializeField]
     GameSystem gameSystem;
 
@@ -37,6 +40,18 @@ public class UISystem : MonoBehaviour
     public GameObject itemGetPanel;
    public GameObject KitichenButton;
 
+void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // シーンを跨いでUIを保持する
+        }
+        else
+        {
+            Destroy(gameObject); // 既にインスタンスが存在する場合は新しいものを破棄
+        }
+    }
 
     void Start()
     {
