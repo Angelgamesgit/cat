@@ -14,7 +14,6 @@ public class FoodDeliverySystem : MonoBehaviour
     public void SetDeliverFood(FoodData SetfoodData)
     {
         gameSystem.playerData.ChangeCurrentFoodData(SetfoodData);
-        Debug.Log("Delivering " + gameSystem.playerData.currentFoodData.name);
         foodDeliveryUISystem.FoodIconChange(gameSystem.playerData.currentFoodData);
     }
 }

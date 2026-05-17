@@ -8,6 +8,6 @@ public class MissionData : ScriptableObject
     public Sprite foodSprite; //ミッションの食料アイコン
     public FoodData foodData; //ミッションの食料データ
     public CookSystem.CookPattern cookPattern; //ミッションの大成功料理のパターン
-
+    public CatData catData; //ミッションの猫のデータ
 
 }

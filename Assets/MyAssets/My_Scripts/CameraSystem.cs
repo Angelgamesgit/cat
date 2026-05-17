@@ -33,16 +33,11 @@ public class CameraSystem : MonoBehaviour
     }
     public void SwitchCamera(bool enableSubCamera)
     {
-        Dictionary<bool, String> Tag = new Dictionary<bool, string>();
-        Tag.Add(false, "MainCamera");
-        Tag.Add(true, "SubCamera");
-
         mainCamera.enabled = !enableSubCamera;
         subCamera.enabled = enableSubCamera;
 
-
-        mainCamera.tag = Tag[!enableSubCamera];
-        subCamera.tag = Tag[enableSubCamera];
+        mainCamera.tag = enableSubCamera ? subCamera.tag : mainCamera.tag;
+        subCamera.tag = enableSubCamera ? mainCamera.tag : subCamera.tag;
         canvas.worldCamera = enableSubCamera ? subCamera : mainCamera;
-        }
+    }
 }

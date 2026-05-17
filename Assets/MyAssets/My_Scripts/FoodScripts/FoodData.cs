@@ -7,7 +7,7 @@ using RotaryHeart.Lib.SerializableDictionary;
 [CreateAssetMenu(fileName = "FoodData", menuName = "Scriptable Objects/FoodData")]
 public class FoodData : ScriptableObject
 {
-    public string Title; //食べ物のタイトル
+    public string FoodName; //食べ物のタイトル
     public string Description; //食べ物の説明
     public Sprite foodIcon; //食べ物のアイコン
 

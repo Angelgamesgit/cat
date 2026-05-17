@@ -12,6 +12,8 @@ public class MissionUISystem : MonoBehaviour
     GameObject missionUI; //ミッションUIのゲームオブジェクトを格納する変数
 [SerializeField]
     Image foodIcon; //食料アイコンを格納する変数
+    [SerializeField]
+    Image catIcon; //猫アイコンを格納する変数
 [SerializeField]
     TMP_Text titleText; //ミッションのタイトルを格納する変数
     [SerializeField]
@@ -32,12 +34,10 @@ public class MissionUISystem : MonoBehaviour
     public void ShowMissionUI(MissionData missionData)
     {
         if (GameSystem.missionState != GameSystem.MissionState.None)return; // ミッションが開始されていない場合はUIを表示しない
-
-
         // ミッションUIを表示する処理をここに記述
             UISystem.Instance.Panel_Open(missionUI.GetComponent<RectTransform>()); // ミッションUIを開く
             foodIcon.sprite = missionData.foodData.foodIcon; // ミッションの食料アイコンを設定
-
+            catIcon.sprite = missionData.catData.catIcon; // ミッションの猫アイコンを設定
     }
 
     public void HideMissionUI()

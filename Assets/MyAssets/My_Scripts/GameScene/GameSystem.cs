@@ -215,12 +215,12 @@ public static MissionState missionState = MissionState.None;
             mainCamera.transform.DORotate(frontRotation.eulerAngles, time);
         }
     }
-    
+
     void Update()
     {
         if (!GamePlaying) return;
         GameEnd();
-        
+
         BetweenCameraAndObject();
         ShowSurfaceDirectionToTarget();
         HandleCameraLookOrTouch(); // フレーム数による判定メソッドを呼び出し
@@ -233,7 +233,7 @@ public static MissionState missionState = MissionState.None;
             if (hit.collider.tag == "MissionBoard")
             {
                 Debug.Log("ミッションボードをタッチ");
-             MissionSelectSystem.missionSelectSystem.MissionSelect(); // ミッション選択システムの関数を呼び出す
+                MissionSelectSystem.missionSelectSystem.MissionSelect(); // ミッション選択システムの関数を呼び出す
             }
             if (hit.collider.tag == "Food")
             {
@@ -241,7 +241,8 @@ public static MissionState missionState = MissionState.None;
                 Food food = hit.collider.GetComponent<Food>();
                 if (food != null)
                 {
-                    food.GetFood(this); // 食べ物のGetFoodメソッドを呼び出す
+                    foodDeliveryUISystem.ShowFoodDeliveryUI(food.foodData); // 食べ物のGetFoodメソッドを呼び出す
+                    Destroy(food.gameObject); // 食べ物のオブジェクトを削除
                 }
             }
         }
@@ -255,7 +256,7 @@ void HandleCameraLookOrTouch()
     {
         touchFrameCount = 0;
         lastMousePosition = Input.mousePosition;
-        
+
         // 現在のカメラの角度を初期値として取得
         Vector3 currentRotation = mainCamera.transform.localEulerAngles;
         cameraYaw = currentRotation.y;
