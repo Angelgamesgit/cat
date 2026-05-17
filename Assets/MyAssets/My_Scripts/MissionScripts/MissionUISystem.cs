@@ -20,7 +20,8 @@ public class MissionUISystem : MonoBehaviour
     TMP_Text descriptionText; //ミッションの説明を格納する変数
     [SerializeField]
     TMP_Text cookPatternText; //ミッションの大成功料理のパターンを格納する変数
-
+[SerializeField]
+GameObject targetCatPanel; //ミッションクリアUIのゲームオブジェクトを格納する変数
     private void Awake()
     {
     }
@@ -39,7 +40,6 @@ public class MissionUISystem : MonoBehaviour
             foodIcon.sprite = missionData.foodData.foodIcon; // ミッションの食料アイコンを設定
             catIcon.sprite = missionData.catData.catIcon; // ミッションの猫アイコンを設定
     }
-
     public void HideMissionUI()
     {
         // ミッションUIを非表示にする処理をここに記述
@@ -55,5 +55,10 @@ public class MissionUISystem : MonoBehaviour
         // ミッションUIを開始する処理をここに記述
         GameSystem.missionState = GameSystem.MissionState.Play;
         HideMissionUI(); // ミッションUIを非表示にする
+    }
+    public void MissionClearCheckUI(CatData catData)
+    {
+        MissionSystem.missionSystem.MissionClearCheck(catData); //ミッションをクリアするかどうかをチェックするシステムの関数を呼び出す
+       UISystem.Instance.Panel_Close(targetCatPanel.GetComponent<RectTransform>()); // ミッションUIを開く
     }
 }
