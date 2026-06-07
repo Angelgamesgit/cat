@@ -11,8 +11,9 @@ public class GameSystem : MonoBehaviour
 {
     public bool GamePlaying;
     public PlayerData playerData;
-    
+    // ミッションシステムの情報を取得するための変数
     public FoodDeliverySystem foodDeliverySystem;
+    // 食べ物のUIシステムの情報を取得するための変数
     public FoodDeliveryUISystem foodDeliveryUISystem;
 
     [SerializeField]
@@ -98,7 +99,7 @@ private bool isFlicking;
     [SerializeField]
     FindCat findCat;
     public CatData findCatData;
-
+public CatData[]  catData;
     public enum MissionState
     {
         None,
@@ -116,7 +117,6 @@ public static MissionState missionState = MissionState.None;
     DaySphereSystem daySphereSystem;
     [SerializeField]
     WeatherSystem weatherSystem;
-
     public GameObject kitchenObject;
 
     void Start()
@@ -158,10 +158,12 @@ public static MissionState missionState = MissionState.None;
         targetObject.SetActive(true);
         GamePlaying = true;
         sphereCollider = sphere.GetComponent<SphereCollider>();
-        FindCatSet();
+        StartCoroutine(FindCatSet());
     }
-    public void FindCatSet()
+    public IEnumerator FindCatSet()
     {
+        for(int i = 0; i < catData.Length; i++)
+        {
         float sphereRadius = sphereCollider.radius
          * Mathf.Max(sphere.transform.localScale.x, sphere.transform.localScale.y, sphere.transform.localScale.z); // ローカルスケールを考慮
         Debug.Log("sphereRadius is " + sphereRadius);
@@ -171,10 +173,18 @@ public static MissionState missionState = MissionState.None;
         Vector3 spawnPosition = sphere.transform.position + (randomDirection * sphereRadius);
         // 球体中心から生成位置への方向を計算
         Vector3 upDirection = randomDirection.normalized;
+
         findCatObject = Instantiate(findCatPrefab, spawnPosition, Quaternion.identity, sphere.transform);
         findCat = findCatObject.AddComponent<FindCat>();
         findCat.StartSet(this);
+        findCat.catData = catData[i];
         findCatObject.transform.up = upDirection;
+        /// <summary>
+        /// 後々データから反映するもの、　スフィアのデータから猫のデータを取得して、猫の種類や見た目を変える　猫のデータから、猫の行動パターンやアニメーションを変える
+        /// </summary>
+        yield return null; // 猫を順番に生成するための待機時間
+        }
+// カメラを猫の子オブジェクトにすることで、カメラの回転が猫を基準としたものになるため、自然な見渡しが可能
         mainCamera.transform.SetParent(catSystem.transform, true);
         cameraRotation = mainCamera.transform.localRotation;
     }
@@ -220,20 +230,22 @@ public static MissionState missionState = MissionState.None;
     {
         if (!GamePlaying) return;
         GameEnd();
-
         BetweenCameraAndObject();
+        if(Input.GetMouseButton(0))
+        {
+            TouchSystem();
+        }
         ShowSurfaceDirectionToTarget();
-        HandleCameraLookOrTouch(); // フレーム数による判定メソッドを呼び出し
         if (Input.GetMouseButtonDown(0))
     {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
             // 当たった相手がを持っていれば実行
             if (hit.collider.tag == "MissionBoard")
             {
                 Debug.Log("ミッションボードをタッチ");
-                MissionSelectSystem.missionSelectSystem.MissionSelect(); // ミッション選択システムの関数を呼び出す
+                MissionSystem.missionSystem.MissionSelect(); // ミッション選択システムの関数を呼び出す
             }
             if (hit.collider.tag == "Food")
             {
@@ -283,26 +295,27 @@ void HandleCameraLookOrTouch()
             // 猫（親）を基準とした角度になるため、周囲を自然に見渡せます
             mainCamera.transform.localEulerAngles = new Vector3(cameraPitch, cameraYaw, 0f);
         }
-        
         lastMousePosition = Input.mousePosition;
     }
 
     // 指を離した瞬間
     if (Input.GetMouseButtonUp(0))
     {
-        
         if (touchFrameCount < flickFrameThreshold)
         {
             // 1. 目的地を移動させる既存の処理
             TouchSystem();
-
             // 2. カメラの回転を初期状態（cameraRotation）へ滑らかに戻す
             // DOTweenを使用して0.5秒かけて復帰
             mainCamera.transform.DOLocalRotate(cameraRotation.eulerAngles, 0.5f)
                 .SetEase(Ease.OutCubic);
         }
-       
         touchFrameCount = 0;
+    }
+    if (mainCamera.transform.localEulerAngles != cameraRotation.eulerAngles)
+    {
+        mainCamera.transform.DOLocalRotate(cameraRotation.eulerAngles, 0.5f)
+            .SetEase(Ease.OutCubic);
     }
 }
 
@@ -545,10 +558,9 @@ void RotateSphereToFaceTarget()
         }
         playerData.Save();
         GamePlaying = false;
-        //演出へ
-        StartCoroutine(GameEndCoroutine());
+        MissionSystem.missionSystem.missionUISystem.ShowCatInfoUI(catSystem.touchCatData); // ミッション終了の処理を呼び出す
     }
-
+// ゲーム終了時の演出を行うコルーチン
     IEnumerator GameEndCoroutine()
     {
         catSystem.transform.LookAt(catTargetObject.transform.position);

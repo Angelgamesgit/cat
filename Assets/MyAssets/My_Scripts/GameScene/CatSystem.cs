@@ -43,6 +43,7 @@ public class CatSystem : MonoBehaviour
     // --- 内部変数 ---
     private float sphereRadius;
     private bool touchCat;
+    public CatData touchCatData; // 猫のデータを格納する変数
     private SphereCollider seaCollider;
     private bool isInSea;
     private float seaHeight = 0f;
@@ -60,7 +61,6 @@ public class CatSystem : MonoBehaviour
     protected readonly int jumpHash = Animator.StringToHash("jump");
     protected readonly int getoffHash = Animator.StringToHash("getoff");
 
-    
 
     //猫のアニメーション状態
     public enum AnimState
@@ -94,7 +94,7 @@ public class CatSystem : MonoBehaviour
         mindistance = 0.2f;
         rundistance = mindistance * 5f;
         moveSpeed = 0.2f;
-        obstacleTag = "Obstacle"; 
+        obstacleTag = "Obstacle";
     }
 
     public virtual void Update()
@@ -190,7 +190,6 @@ public class CatSystem : MonoBehaviour
     private void UpdateAnimationState(float targetHeight, float speedRatio)
     {
         AnimState nextState;
-
         // 高さに大きな変化があるか（ジャンプ/着地）
         bool isJumping = targetHeight > jumpDifference && (targetHeight - jumpDifference) > 0.05f;
         bool isGettingOff = jumpDifference > targetHeight && (jumpDifference - targetHeight) > 0.05f;
@@ -271,13 +270,18 @@ public class CatSystem : MonoBehaviour
 
     public bool FindforFriends()
     {
+        if(this.GetComponent<FindCat>() != null) return false;
+        Debug.Log("FindforFriends");
         if (system.findCatObject == null) return false;
+        // ターゲット猫へのベクトルと現在の前方ベクトルを計算
         Vector3 targetDir = system.findCatObject.transform.position - transform.position;
         float targetDistance = targetDir.magnitude;
         float sightAngle = 60f;
         float cosHalf = Mathf.Cos(sightAngle / 2 * Mathf.Deg2Rad);
         float innerProduct = Vector3.Dot(transform.forward, targetDir.normalized);
+        // ターゲット猫が視界内にいるか、距離が近いか、またはすでに触れている場合はtrueを返す
         if (touchCat) return touchCat;
+        // ターゲット猫が視界内にいて、かつ距離が近い場合にtrueを返す
         return innerProduct > cosHalf && targetDistance < mindistance * 1.5f;
     }
 
@@ -330,10 +334,10 @@ public class CatSystem : MonoBehaviour
         else if (other.CompareTag("Cat"))
         {
             touchCat = true;
+            Debug.Log("猫に触れた");
+            touchCatData = other.GetComponent<FindCat>().catData; // 猫のデータを取得して変数に格納
         }
     }
-
-   
 
     public void OnTriggerExit(Collider other)
     {
@@ -389,19 +393,19 @@ public class CatSystem : MonoBehaviour
         currentState = state;
         animator.SetTrigger(state.ToString());
     }
-    
+
     void isNearKitchen()
     {
         if (system.kitchenObject == null) return;
         float kitchenDistance = Vector3.Distance(transform.position, system.kitchenObject.transform.position);
         if (kitchenDistance <  10f)
         {
-          FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(true);
+        FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(true);
         }
         //
         else
         {
-           FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(false);
+        FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(false);
         }
     }
 }

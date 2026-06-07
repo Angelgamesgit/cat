@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class FindCat : CatSystem
 {
-    
+public CatData catData;
     public void StartSet(GameSystem setsystem)
     {
         system = setsystem;
@@ -13,7 +13,7 @@ public class FindCat : CatSystem
     }
     public override void Update()
     {
-        
+
     }
     void OnCollisionStay(Collision collision)
     {

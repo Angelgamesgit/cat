@@ -165,7 +165,6 @@ void Awake()
         iconRect.DOAnchorPos(new Vector2(Screen.width * 0.6f, Screen.height * 0.6f), 1f).SetEase(Ease.Linear);
         yield return new WaitForSeconds(1f);
         ScneneChangePanel.SetActive(false);
-
     }
 
 
@@ -193,7 +192,7 @@ void Awake()
     [SerializeField]
     GameObject notificationPrefab;
     /// <summary>
-    /// 
+    /// アイテムを獲得したときの演出関数
     /// </summary>
     /// <param name="patternIndex"></param>
     /// <param name="itemSprite"></param>
@@ -326,7 +325,7 @@ void Awake()
            {
                if (explosionEffectPrefab != null)
                {
-                   Instantiate(explosionEffectPrefab, iconRect.position, Quaternion.identity, transform);
+                Instantiate(explosionEffectPrefab, iconRect.position, Quaternion.identity, transform);
                }
            })
            .Append(iconRect.DOShakeScale(duration, 0.5f, 10, 90)) // 爆発に合わせてアイコンが揺れる
@@ -354,27 +353,27 @@ void Awake()
         Sequence seq = DOTween.Sequence();
 
         seq.Append(iconRect.DOSizeDelta(originalIconSize, duration).SetEase(Ease.OutCubic)) // 紙が横に広がる
-           .AppendCallback(() =>
-           {
-               // 爆発エフェクトをアイコンの中央に生成
-               if (explosionEffectPrefab != null)
-               {
-                   // Pivotを変更しているので、ワールド座標で中央を計算して生成
-                   Vector3 centerPos = iconRect.TransformPoint(new Vector2(originalIconSize.x / 2, 0));
-                   Instantiate(explosionEffectPrefab, centerPos, Quaternion.identity, transform);
-               }
-           })
-           .AppendInterval(0.2f) // 爆発を少し見てからテキスト表示
-           .Append(itemNameText.DOFade(1f, duration))
-           .Join(messageText.DOFade(1f, duration))
-           .AppendInterval(1.5f) // 1.5秒待機
-           .Append(GetComponent<CanvasGroup>().DOFade(0, duration)) // 全体をフェードアウト
-           .OnComplete(() =>
-           {
-               // 演出が終わったらPivotを元に戻しておくことが重要
-               iconRect.pivot = new Vector2(0.5f, 0.5f);
-               gameObject.SetActive(false);
-           });
+        .AppendCallback(() =>
+        {
+        // 爆発エフェクトをアイコンの中央に生成
+        if (explosionEffectPrefab != null)
+        {
+        // Pivotを変更しているので、ワールド座標で中央を計算して生成
+        Vector3 centerPos = iconRect.TransformPoint(new Vector2(originalIconSize.x / 2, 0));
+        Instantiate(explosionEffectPrefab, centerPos, Quaternion.identity, transform);
+        }
+        })
+        .AppendInterval(0.2f) // 爆発を少し見てからテキスト表示
+        .Append(itemNameText.DOFade(1f, duration))
+        .Join(messageText.DOFade(1f, duration))
+        .AppendInterval(1.5f) // 1.5秒待機
+        .Append(GetComponent<CanvasGroup>().DOFade(0, duration)) // 全体をフェードアウト
+        .OnComplete(() =>
+        {
+        // 演出が終わったらPivotを元に戻しておくことが重要
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        gameObject.SetActive(false);
+        });
     }
 
     public void Panel_Open(Transform panelTransform)
