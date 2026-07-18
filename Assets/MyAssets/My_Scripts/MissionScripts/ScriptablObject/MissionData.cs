@@ -10,4 +10,6 @@ public class MissionData : ScriptableObject
     public CookSystem.CookPattern cookPattern; //ミッションの大成功料理のパターン
     public CatData catData; //ミッションの猫のデータ
 
+    public float missionTime; //ミッションの制限時間
+
 }

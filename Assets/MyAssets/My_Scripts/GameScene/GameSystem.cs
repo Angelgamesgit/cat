@@ -9,15 +9,14 @@ using Unity.VisualScripting;
 //  UI判定に必要
 public class GameSystem : MonoBehaviour
 {
-    public bool GamePlaying;
+    public bool isPlaying;
     public PlayerData playerData;
     // ミッションシステムの情報を取得するための変数
     public FoodDeliverySystem foodDeliverySystem;
     // 食べ物のUIシステムの情報を取得するための変数
     public FoodDeliveryUISystem foodDeliveryUISystem;
 
-    [SerializeField]
-    GameObject catTargetObject;
+
 
     [SerializeField]
     public GameObject sphere;
@@ -29,18 +28,10 @@ public class GameSystem : MonoBehaviour
     GameObject weatherpoint;
 
     public Camera mainCamera;
-    // --- 変数宣言部に追加 ---
-[Header("Flick Settings")]
-private int touchFrameCount;
-private int flickFrameThreshold; // フリックと見渡しの判定フレーム数
-private Vector3 lastMousePosition;
+
 [Header("Camera Look Settings")]
 [SerializeField] private float lookSensitivity = 0.2f; // 見渡しの感度
-private float cameraYaw;   // 左右の回転角
-private float cameraPitch; // 上下の回転角
 
-[SerializeField] private float minPitch = -30f;      // 下方向の制限
-[SerializeField] private float maxPitch = 60f;       // 上方向の制限
 
 
 [Tooltip("フリックによる回転の感度")]
@@ -60,8 +51,6 @@ private bool isFlicking;
     [Tooltip("猫の正面にカメラを配置する際の高さ")]
     [SerializeField] private float cameraFrontHeight;
 
-    [Tooltip("回転の速さを調整する係数")]
-    float rotationSpeedMultiplier;
 
     //見つける猫のオブジェクト
     [SerializeField]
@@ -129,34 +118,27 @@ public static MissionState missionState = MissionState.None;
         playerData.Load();
         SphereSet(playerData.currentSphereSpec);
         foodDeliverySystem = FindFirstObjectByType<FoodDeliverySystem>();
-        Vector3 directionFromSphereCenterToObject = (targetObject.transform.position - sphere.transform.position).normalized;
-        Vector3 targetPositionOnSurface = sphere.transform.position + (directionFromSphereCenterToObject * (sphereCollider.radius * sphere.transform.localScale.y));
+        //星の頂点にターゲットを配置する
+        Vector3 targetPositionOnSurface = sphere.transform.position + (sphere.transform.up * sphereCollider.radius * sphere.transform.localScale.y);
         targetObject.transform.position = targetPositionOnSurface;
         targetObject.transform.up = (targetObject.transform.position - sphere.transform.position).normalized;
         mainTargetPos = targetObject.transform.position;
         kitchenObject = GameObject.FindGameObjectWithTag("Kitchen");
-
         // UIの初期化
-        if (directionArrowUI == null)
-        {
-            Debug.LogError("Direction Arrow UIが設定されていません。");
-        }
     }
 
     void AssignVariables()
     {
-        GamePlaying = false;
-        rotationSpeedMultiplier = 0.35f;
+        isPlaying = false;
         layerMask = 1 << LayerMask.NameToLayer("Object"); ; // -1 は全てのレイヤー
         originalMaterials = new Dictionary<Renderer, Material[]>();
         currentlyObstructedRenderers = new HashSet<Renderer>();
-        flickFrameThreshold = 10; // 10フレームで判定
     }
 
     public void GameStart()
     {
         targetObject.SetActive(true);
-        GamePlaying = true;
+        isPlaying = true;
         sphereCollider = sphere.GetComponent<SphereCollider>();
         StartCoroutine(FindCatSet());
     }
@@ -184,8 +166,6 @@ public static MissionState missionState = MissionState.None;
         /// </summary>
         yield return null; // 猫を順番に生成するための待機時間
         }
-// カメラを猫の子オブジェクトにすることで、カメラの回転が猫を基準としたものになるため、自然な見渡しが可能
-        mainCamera.transform.SetParent(catSystem.transform, true);
         cameraRotation = mainCamera.transform.localRotation;
     }
 
@@ -228,14 +208,19 @@ public static MissionState missionState = MissionState.None;
 
     void Update()
     {
-        if (!GamePlaying) return;
+        if (!isPlaying) return;
         GameEnd();
         BetweenCameraAndObject();
         if(Input.GetMouseButton(0))
         {
             TouchSystem();
         }
-        ShowSurfaceDirectionToTarget();
+        if(Input.GetMouseButtonUp(0))
+        {
+            targetObject.SetActive(false);
+            RotateSphereToFaceTarget();
+        }
+        //ShowSurfaceDirectionToTarget();
         if (Input.GetMouseButtonDown(0))
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
@@ -261,63 +246,6 @@ public static MissionState missionState = MissionState.None;
     }
     }
 
-void HandleCameraLookOrTouch()
-{
-    // 指が触れた瞬間
-    if (Input.GetMouseButtonDown(0))
-    {
-        touchFrameCount = 0;
-        lastMousePosition = Input.mousePosition;
-
-        // 現在のカメラの角度を初期値として取得
-        Vector3 currentRotation = mainCamera.transform.localEulerAngles;
-        cameraYaw = currentRotation.y;
-        cameraPitch = (currentRotation.x > 180) ? currentRotation.x - 360 : currentRotation.x;
-    }
-
-    // 指が触れている間
-    if (Input.GetMouseButton(0))
-    {
-        touchFrameCount++;
-
-        if (touchFrameCount >= flickFrameThreshold)
-        {
-            Vector3 delta = Input.mousePosition - lastMousePosition;
-
-            // マウスの移動量に応じて角度を計算
-            cameraYaw += delta.x * lookSensitivity;
-            cameraPitch -= delta.y * lookSensitivity; // 上下は反転させる
-
-            // 上下の回転角度を制限（画面酔いや反転防止）
-            cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
-
-            // カメラのローカル回転に適用
-            // 猫（親）を基準とした角度になるため、周囲を自然に見渡せます
-            mainCamera.transform.localEulerAngles = new Vector3(cameraPitch, cameraYaw, 0f);
-        }
-        lastMousePosition = Input.mousePosition;
-    }
-
-    // 指を離した瞬間
-    if (Input.GetMouseButtonUp(0))
-    {
-        if (touchFrameCount < flickFrameThreshold)
-        {
-            // 1. 目的地を移動させる既存の処理
-            TouchSystem();
-            // 2. カメラの回転を初期状態（cameraRotation）へ滑らかに戻す
-            // DOTweenを使用して0.5秒かけて復帰
-            mainCamera.transform.DOLocalRotate(cameraRotation.eulerAngles, 0.5f)
-                .SetEase(Ease.OutCubic);
-        }
-        touchFrameCount = 0;
-    }
-    if (mainCamera.transform.localEulerAngles != cameraRotation.eulerAngles)
-    {
-        mainCamera.transform.DOLocalRotate(cameraRotation.eulerAngles, 0.5f)
-            .SetEase(Ease.OutCubic);
-    }
-}
 
     //オブジェクトとカメラの間にあるオブジェクトを専用のマテリアル（半透明）に置き換える　
     //オブジェクトとカメラの間、およびカメラと衝突しているオブジェクトを半透明にする
@@ -403,57 +331,6 @@ void HandleCameraLookOrTouch()
             renderer.materials = originalMaterials;
         }
     }
-    /*    void CameraMove()
-    {
-        if (catSystem.jumpDifference == 0) return;
-        Vector3 cameraJumpPos = cameraPos + (catSystem.jumpDifference * (catSystem.transform.position - sphere.transform.position).normalized);
-        mainCamera.transform.DOMove(cameraJumpPos, 1f);
-    }
-*/
-    void ShowSurfaceDirectionToTarget()
-    {
-        // 球体の中心座標 (ワールド座標)
-        Vector3 sphereCenter = sphere.transform.position + sphereCollider.center;
-
-        // 球体の上にいるオブジェクトと目標オブジェクトの位置
-        Vector3 onSpherePos = targetObject.transform.position;
-        Vector3 targetPos = findCatObject.transform.position;
-
-        // 球体の中心から見た、それぞれのオブジェクトへのベクトル
-        Vector3 fromCenterToOnSphere = onSpherePos - sphereCenter;
-        Vector3 fromCenterToTarget = targetPos - sphereCenter;
-
-        // 法線ベクトル（球体の中心からOnSphereObjectへ）
-        Vector3 normal = fromCenterToOnSphere.normalized;
-
-        // 目標への方向ベクトル（球体の中心から）
-        Vector3 targetDirection = fromCenterToTarget.normalized;
-
-        // 法線ベクトルと目標方向ベクトルの外積で、回転軸を求める
-        Vector3 rotationAxis = Vector3.Cross(normal, targetDirection).normalized;
-
-        // 回転軸と法線ベクトルの外積で、球面上での移動方向（接線ベクトル）を求める
-        Vector3 surfaceDirection = Vector3.Cross(rotationAxis, normal).normalized;
-
-        // 矢印UIをスクリーン座標で配置する場合
-        Vector3 onSphereScreenPos = mainCamera.WorldToScreenPoint(onSpherePos + normal * arrowOffset);
-
-
-        // 球面上での移動方向を示すワールド座標上の点
-        Vector3 surfaceDirectionWorldPos = onSpherePos + surfaceDirection * arrowOffset;
-        Vector3 surfaceDirectionScreenPos = mainCamera.WorldToScreenPoint(surfaceDirectionWorldPos);
-
-        // 方向ベクトルを計算 (スクリーン座標系)
-        Vector2 directionVectorScreen = surfaceDirectionScreenPos - onSphereScreenPos;
-
-        // 角度を計算
-        float angle = Mathf.Atan2(directionVectorScreen.y, directionVectorScreen.x) * Mathf.Rad2Deg;
-
-        // 矢印UIの回転を設定
-        directionArrowUI.eulerAngles = new Vector3(0, 0, angle);
-    }
-
-
 public void TouchSystem()
 {
     Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
@@ -469,7 +346,6 @@ public void TouchSystem()
         foreach (RaycastHit hit in allHits)
         {
             if (hit.collider.CompareTag("Untagged")) continue;
-
             finalHit = hit;
             foundValidTarget = true;
             break;
@@ -478,10 +354,9 @@ public void TouchSystem()
         if (foundValidTarget && sphereCollider != null)
         {
             // 猫のオブジェクトとの距離をチェック
-            if (catSystem != null)
                 {
                 //猫からこの距離以内の場所をタッチした場合は、ターゲットを動かさない
-                float minDistanceToMoveTarget = 1.5f;
+                float minDistanceToMoveTarget = catSystem.moveSpeed * 6f; // ここで距離の閾値を設定
                 float distanceToCat = Vector3.Distance(finalHit.point, catSystem.transform.position);
                 if (distanceToCat < minDistanceToMoveTarget)
                 {
@@ -490,54 +365,110 @@ public void TouchSystem()
                 }
             }
 
-            // --- ターゲットの移動処理 ---
-            Vector3 directionFromCenterToHit = (finalHit.point - sphere.transform.position).normalized;
-            float sphereRadius = sphereCollider.radius * GetMaxAbsScale(sphere.transform.lossyScale);
-            Vector3 spherePosition = sphere.transform.position + (directionFromCenterToHit * sphereRadius);
+Vector3 direction =
+(finalHit.point - sphere.transform.position).normalized;
 
-            // 位置と親子関係の設定
-            targetObject.transform.position = spherePosition;
-            targetObject.transform.SetParent(sphere.transform);
+// -------------------------------
+// 画面上半分なら裏面へ変換
+// -------------------------------
 
-            // 向きの調整
-            targetObject.transform.up = directionFromCenterToHit; // 球体中心から外側へのベクトル
+if (Input.mousePosition.y > Screen.height * 0.5f)
+{
+    Transform cam = mainCamera.transform;
+
+    Vector3 camForward =
+        cam.forward;
+
+    Vector3 camRight =
+        cam.right;
+
+    Vector3 camUp =
+        Vector3.Cross(camRight, camForward);
+
+    float x =
+        Vector3.Dot(direction, camRight);
+
+    float y =
+        Vector3.Dot(direction, camUp);
+
+    float z =
+        Vector3.Dot(direction, camForward);
+
+    // 奥へ
+    z *= -1f;
+
+    direction =
+        (
+            camRight * x +
+            camUp * y +
+            camForward * z
+        ).normalized;
+}
+
+float sphereRadius =
+sphereCollider.radius *
+GetMaxAbsScale(sphere.transform.lossyScale);
+
+Vector3 spherePosition =
+sphere.transform.position +
+direction *
+sphereRadius;
+
+targetObject.transform.position =
+spherePosition;
+
+targetObject.transform.up =
+direction;
+
+targetObject.transform.SetParent(
+sphere.transform);
+
+
+            targetObject.transform.up = direction; // 球体中心から外側へのベクトル
 
             // 球体を回転させる
             RotateSphereToFaceTarget();
         }
     }
-// 画面をタッチした瞬間に、タッチ位置からカメラに向かってレイを飛ばし、最初に当たったオブジェクトを処理する
-
-   
 }
+
     // --- RotateSphereToFaceTarget メソッドの修正・追加 ---
 /// <summary>
 /// targetObjectがカメラの正面に来るように球体を滑らかに回転させる
 /// </summary>
 void RotateSphereToFaceTarget()
 {
-    if (sphere == null || targetObject == null || mainCamera == null) return;
+    if (sphere == null || targetObject == null || mainCamera == null)
+        return;
 
     Vector3 sphereCenter = sphere.transform.position;
 
-    // 現在のターゲット方向（球体中心から見たターゲットの位置）
-    Vector3 currentTargetDir = (targetObject.transform.position - sphereCenter).normalized;
-    // 目標の方向（球体中心から見たカメラの位置）
-    Vector3 goalDir = (mainCamera.transform.position - sphereCenter).normalized;
+    Vector3 currentTargetDir =
+        (targetObject.transform.position - sphereCenter).normalized;
 
-    // 現在の方向から目標方向への差分回転を計算
-    Quaternion rotationToAdd = Quaternion.FromToRotation(currentTargetDir, goalDir);
-    // 球体の最終的な目標回転値
-    Quaternion targetRotation = rotationToAdd * sphere.transform.rotation;
+    Vector3 goalDir = (transform.up * sphereCollider.radius - sphereCenter).normalized;
 
-        // ★DOTweenを使用して滑らかに回転
-        // 進行中の回転があれば停止させる（Kill）
-        sphere.transform.DOKill();
-    
-    // Ease.OutCubic を使うことで、目標（正面）に近づくほどゆっくり減速します
-    float sphereRotateDuration = 2.5f;
-    sphere.transform.DORotateQuaternion(targetRotation, sphereRotateDuration)
-        .SetEase(Ease.OutCubic);
+    Quaternion rotationToAdd =
+        Quaternion.FromToRotation(currentTargetDir, goalDir);
+
+    Quaternion targetRotation =
+        rotationToAdd * sphere.transform.rotation;
+
+    sphere.transform.DOKill();
+
+    float sphereRotateDuration =
+        Mathf.Clamp(
+            Quaternion.Angle(sphere.transform.rotation, targetRotation) / 180f,
+            2f, 5f);
+
+    sphere.transform
+        .DORotateQuaternion(targetRotation, sphereRotateDuration)
+        .SetEase(Ease.OutCubic)
+        .OnComplete(() =>
+        {
+            // Tween終了時に最終角度を強制的に合わせる
+            sphere.transform.rotation = targetRotation;
+        });
 }
     // ... (GetMaxAbsScale, GameEnd, GameEndCoroutine, SphereSet, AddAllRenderersFrom メソッドは変更なし) ...
     /// <summary>
@@ -557,25 +488,8 @@ void RotateSphereToFaceTarget()
             playerData.catFound.Add(findCatData);
         }
         playerData.Save();
-        GamePlaying = false;
+        isPlaying = false;
         MissionSystem.missionSystem.missionUISystem.ShowCatInfoUI(catSystem.touchCatData); // ミッション終了の処理を呼び出す
-    }
-// ゲーム終了時の演出を行うコルーチン
-    IEnumerator GameEndCoroutine()
-    {
-        catSystem.transform.LookAt(catTargetObject.transform.position);
-        catTargetObject.SetActive(false);
-        Vector3 targetPos = catSystem.transform.position + (catSystem.transform.up * 2f) - (catSystem.transform.forward * 3f);
-        Vector3 targetRot = catTargetObject.transform.position - targetPos;
-        Vector3 selfToCenter = targetPos - sphere.transform.position;
-        Quaternion targetRotation = Quaternion.LookRotation(targetRot, selfToCenter);
-        Quaternion catTargetRotation = Quaternion.LookRotation(catTargetObject.transform.position - catSystem.transform.position, selfToCenter);
-        mainCamera.transform.DOMove(targetPos, 2f);
-        mainCamera.transform.DORotate(targetRotation.eulerAngles, 2f);
-        catTargetObject.transform.DORotate(catTargetRotation.eulerAngles, 2f);
-        catSystem.CatAnimationMove(CatSystem.AnimState.idle);
-        yield return new WaitForSeconds(2.25f);
-        clearPanel.SetActive(true);
     }
 
 /// <summary>
@@ -601,7 +515,8 @@ void RotateSphereToFaceTarget()
         daySphereSystem.SphreSet(playerData.currentSphereSpec.dayType[timerandom]);
 
         weatherSystem.WeatherSet(playerData.currentSphereSpec.weatherState);
-        Vector3 insPos = Vector3.Lerp(sphere.transform.position, mainCamera.transform.position, (float)sphereCollider.radius * sphere.transform.lossyScale.x / Vector3.Distance(sphere.transform.position, mainCamera.transform.position));
+        //猫の生成位置画面真ん中　
+        Vector3 insPos = sphere.transform.position + sphere.transform.up * sphereCollider.radius * sphere.transform.lossyScale.y;
         Debug.Log("insPos is " + insPos);
         GameObject cat = Instantiate(playerData.CatPrefab, insPos, targetObject.transform.rotation);
         cat.transform.SetParent(sphere.transform);

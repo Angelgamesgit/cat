@@ -23,17 +23,15 @@ public class CatSystem : MonoBehaviour
 
     [Header("移動パラメータ")]
     [Tooltip("1フレームあたりの基本移動量")]
-    public float moveSpeed = 0.03f;
-    [Tooltip("この距離まで近づくと停止する")]
-    public float mindistance = 1.0f;
-    [Tooltip("この距離以上離れると最高速で走る")]
-    public float rundistance = 3.0f;
+    public float moveSpeed;
 
+    [Tooltip("この距離以上離れると最高速で走る")]
+    public float rundistance ;
     [Header("スムーズ化パラメータ")]
     [Tooltip("高さの変化を滑らかにする係数（0〜1）")]
     [Range(0, 1)] public float heightLerpFactor = 0.1f;
     [Tooltip("向きの変化を滑らかにする係数（0〜1）")]
-    [Range(0, 1)] public float rotationSlerpFactor = 0.15f;
+    [Range(0, 1)] public float rotationSlerpFactor;
 
     [Header("状態確認（デバッグ用）")]
     public float distance;
@@ -87,19 +85,18 @@ public class CatSystem : MonoBehaviour
         currentState = AnimState.idle;
         isInSea = false;
         if (seaBoat != null) seaBoat.SetActive(false);
-
+        moveSpeed = 0.5f;
         otherHeight = new Dictionary<Collider, float>();
         jumpDifference = 0f;
         distance = 0f;
-        mindistance = 0.2f;
-        rundistance = mindistance * 5f;
-        moveSpeed = 0.2f;
+        rotationSlerpFactor = 0.2f;
+        rundistance = moveSpeed * 10f;
         obstacleTag = "Obstacle";
     }
 
     public virtual void Update()
     {
-        if (!system.GamePlaying) return;
+        if (!system.isPlaying) return;
 
         // メインの更新処理を呼び出し
         CatBehaviorUpdate();
@@ -120,7 +117,8 @@ public class CatSystem : MonoBehaviour
         distance = Vector3.Distance(transform.position, targetObject.position);
         float targetHeight = CalculateTargetHeight();
         float speedRatio = CalculateSpeedRatio(distance);
-        float currentTargetSpeed = moveSpeed * speedRatio;
+
+        float currentTargetSpeed = speedRatio * moveSpeed;
 
         // ▼ STEP 2: 高さや向きを滑らかに補間する ▼
         jumpDifference = Mathf.Lerp(jumpDifference, targetHeight, heightLerpFactor);
@@ -180,8 +178,8 @@ public class CatSystem : MonoBehaviour
        // 走行距離より遠ければ最高速
         if (dist >= rundistance) return 1.0f;
 
-        // mindistanceとrundistanceの間を線形補間
-        return Mathf.InverseLerp(mindistance, rundistance, dist);
+        // moveSpeedとrundistanceの間を線形補間
+        return Mathf.InverseLerp(0, rundistance, dist);
     }
 
     /// <summary>
@@ -271,7 +269,7 @@ public class CatSystem : MonoBehaviour
     public bool FindforFriends()
     {
         if(this.GetComponent<FindCat>() != null) return false;
-        Debug.Log("FindforFriends");
+
         if (system.findCatObject == null) return false;
         // ターゲット猫へのベクトルと現在の前方ベクトルを計算
         Vector3 targetDir = system.findCatObject.transform.position - transform.position;
@@ -282,7 +280,7 @@ public class CatSystem : MonoBehaviour
         // ターゲット猫が視界内にいるか、距離が近いか、またはすでに触れている場合はtrueを返す
         if (touchCat) return touchCat;
         // ターゲット猫が視界内にいて、かつ距離が近い場合にtrueを返す
-        return innerProduct > cosHalf && targetDistance < mindistance * 1.5f;
+        return innerProduct > cosHalf && targetDistance < moveSpeed * 1.5f;
     }
 
     #region 足音の再生
