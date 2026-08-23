@@ -4,6 +4,11 @@ public class CatSceneManager : MonoBehaviour
 {
   [SerializeField]
   UISystem uISystem; // UIシステムの参照
+
+  public static CatSceneManager Instantiate()
+  {
+    return FindObjectOfType<CatSceneManager>();
+  }
   public void currentSceneLoad()
   {
     Scene currentScene = SceneManager.GetActiveScene();

@@ -65,9 +65,14 @@ public void MissionStart()
             return;
         }
         //ミッションをクリアするかどうかをチェックするシステムの関数
-    if (currentMissionData.catData != info_CatData)
+    if (currentMissionData.catData == info_CatData)
         {
+
             //ミッションをクリアする処理をここに記述
+            /*
+            料理の調理状態があっているか +1
+            時間制限を満たしているか +1 ~ +3
+            */
             MissionClear(MissonCrearRank.S); //仮でSランクでクリアする
         }
     else
@@ -97,6 +102,7 @@ public void MissionStart()
                 Debug.Log("ミッションをDランクでクリア処理を開始");
                 break;
         }
+        currentMissionData = null; //現在のミッションのデータをリセットする
         //ミッションをクリアするシステムの関数
         GetComponent<MissionUISystem>().ShowMissionClearUI(); //ミッションUIをクリアする
     }
@@ -105,6 +111,7 @@ public void MissionFail()
     {
         //ミッションを失敗するシステムの関数
         GetComponent<MissionUISystem>().ShowMissionFailedUI(); //ミッションUIを非表示にする
+        Debug.Log("ミッションを失敗しました。 処理を開始");
     }
 
 public void MissionReset()
@@ -122,7 +129,7 @@ public void MissionReset()
         {
             //ミッションが現在アクティブな場合の処理をここに記述
             //例えば、ミッションの時間を減らすなどの処理を行う
-            currentMissionData.missionTime -= Time.deltaTime; //仮でミッションの時間を1減らす
+            currentMissionData.missionTime -= Time.deltaTime; //仮でミッションの時間を減らす
         }
     }
 }

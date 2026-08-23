@@ -117,18 +117,15 @@ public class CatSystem : MonoBehaviour
         distance = Vector3.Distance(transform.position, targetObject.position);
         float targetHeight = CalculateTargetHeight();
         float speedRatio = CalculateSpeedRatio(distance);
-
         float currentTargetSpeed = speedRatio * moveSpeed;
 
         // ▼ STEP 2: 高さや向きを滑らかに補間する ▼
         jumpDifference = Mathf.Lerp(jumpDifference, targetHeight, heightLerpFactor);
 
-        if (speedRatio > 0.01f) // ほぼ停止している時は回転しない
-        {
-            Vector3 selfToCenter = transform.position - sphereObject.position;
-            Quaternion targetRotation = Quaternion.LookRotation(targetObject.position - transform.position, selfToCenter.normalized);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSlerpFactor);
-        }
+        if (speedRatio < 0.01f) return; // ほぼ停止している時は回転処理をスキップして、アニメーションの更新だけ行う
+        Vector3 selfToCenter = transform.position - sphereObject.position;
+        Quaternion targetRotation = Quaternion.LookRotation(targetObject.position - transform.position, selfToCenter.normalized);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSlerpFactor);
 
         // ▼ STEP 3: 計算された値に基づいて最終的な位置を決定・適用する ▼
         // 1. 1フレーム分の移動量を計算
@@ -335,6 +332,10 @@ public class CatSystem : MonoBehaviour
             Debug.Log("猫に触れた");
             touchCatData = other.GetComponent<FindCat>().catData; // 猫のデータを取得して変数に格納
         }
+        else if (other.CompareTag("Gate"))
+        {
+            OpenGate();
+        }
     }
 
     public void OnTriggerExit(Collider other)
@@ -405,5 +406,10 @@ public class CatSystem : MonoBehaviour
         {
         FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(false);
         }
+    }
+
+    void OpenGate()
+    {
+        CatSceneManager.Instantiate().currentSceneLoad();
     }
 }

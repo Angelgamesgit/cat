@@ -6,46 +6,24 @@ using DG.Tweening;
 using System.Linq;
 using Unity.VisualScripting;
 
+
 //  UI判定に必要
 public class GameSystem : MonoBehaviour
 {
     public bool isPlaying;
     public PlayerData playerData;
-    // ミッションシステムの情報を取得するための変数
-    public FoodDeliverySystem foodDeliverySystem;
-    // 食べ物のUIシステムの情報を取得するための変数
-    public FoodDeliveryUISystem foodDeliveryUISystem;
-
-
 
     [SerializeField]
     public GameObject sphere;
 
-    [SerializeField]
-    Transform skyDome;
-
-    [SerializeField]
-    GameObject weatherpoint;
 
     public Camera mainCamera;
 
-[Header("Camera Look Settings")]
-[SerializeField] private float lookSensitivity = 0.2f; // 見渡しの感度
-
-
-
-[Tooltip("フリックによる回転の感度")]
-[SerializeField] private float flickSensitivity;
-
-private Vector3 touchStartPos;
-private bool isFlicking;
     // 初期カメラ位置と回転を保存する変数
     Vector3 cameraPos;
     Quaternion cameraRotation;
 
     [Header("Camera Settings")]
-    [Tooltip("猫の真上にカメラを配置する際の距離")]
-    [SerializeField] private float cameraInitialUpDistance;
     [Tooltip("猫の正面にカメラを配置する際の距離")]
     [SerializeField] private float cameraFrontDistance;
     [Tooltip("猫の正面にカメラを配置する際の高さ")]
@@ -59,8 +37,6 @@ private bool isFlicking;
 
     CatPlayer catSystem;
 
-    [SerializeField]
-    GameObject catFood;
 
     [Tooltip("このオブジェクトが正面に来るように”星”が回転する このオブジェクトとの中間にあるオブジェクトを半透明にする")]
     public GameObject targetObject;
@@ -80,11 +56,6 @@ private bool isFlicking;
 
     SphereCollider sphereCollider;
 
-    public GameObject clearPanel;
-
-    [Tooltip("方向を示す矢印UIの RectTransform")]
-    public RectTransform directionArrowUI;
-
     [SerializeField]
     FindCat findCat;
     public CatData findCatData;
@@ -95,8 +66,6 @@ public CatData[]  catData;
         Play,
     }
 public static MissionState missionState = MissionState.None;
-    //画面上のタッチを終了し、画面の真ん中に戻すための位置情報
-    Vector3 mainTargetPos;
 
     //猫が追いかけるターゲットのオブジェクトが指定の位置にあるかをチェック　タッチで場所を変えた場合は猫とターゲットの最低距離をなくす
     // ▼▼▼ 変更点: targetObjMoveフラグは新しいロジックでは不要となるためコメントアウト ▼▼▼
@@ -107,6 +76,8 @@ public static MissionState missionState = MissionState.None;
     [SerializeField]
     WeatherSystem weatherSystem;
     public GameObject kitchenObject;
+    [SerializeField]
+    GameObject gateObject;
 
     void Start()
     {
@@ -117,12 +88,10 @@ public static MissionState missionState = MissionState.None;
         // cameraPosとcameraRotationはSphereSetで初期化される
         playerData.Load();
         SphereSet(playerData.currentSphereSpec);
-        foodDeliverySystem = FindFirstObjectByType<FoodDeliverySystem>();
         //星の頂点にターゲットを配置する
         Vector3 targetPositionOnSurface = sphere.transform.position + (sphere.transform.up * sphereCollider.radius * sphere.transform.localScale.y);
         targetObject.transform.position = targetPositionOnSurface;
         targetObject.transform.up = (targetObject.transform.position - sphere.transform.position).normalized;
-        mainTargetPos = targetObject.transform.position;
         kitchenObject = GameObject.FindGameObjectWithTag("Kitchen");
         // UIの初期化
     }
@@ -135,6 +104,7 @@ public static MissionState missionState = MissionState.None;
         currentlyObstructedRenderers = new HashSet<Renderer>();
     }
 
+//ボタンから呼び出される　ゲームを開始する
     public void GameStart()
     {
         targetObject.SetActive(true);
@@ -220,30 +190,7 @@ public static MissionState missionState = MissionState.None;
             targetObject.SetActive(false);
             RotateSphereToFaceTarget();
         }
-        //ShowSurfaceDirectionToTarget();
-        if (Input.GetMouseButtonDown(0))
-    {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit))
-        {
-            // 当たった相手がを持っていれば実行
-            if (hit.collider.tag == "MissionBoard")
-            {
-                Debug.Log("ミッションボードをタッチ");
-                MissionSystem.missionSystem.MissionSelect(); // ミッション選択システムの関数を呼び出す
-            }
-            if (hit.collider.tag == "Food")
-            {
-                Debug.Log("食べ物をタッチ");
-                Food food = hit.collider.GetComponent<Food>();
-                if (food != null)
-                {
-                    foodDeliveryUISystem.ShowFoodDeliveryUI(food.foodData); // 食べ物のGetFoodメソッドを呼び出す
-                    Destroy(food.gameObject); // 食べ物のオブジェクトを削除
-                }
-            }
-        }
-    }
+
     }
 
 
@@ -337,6 +284,10 @@ public void TouchSystem()
     float maxRayDistance = sphere.transform.lossyScale.x * 5f; // 十分な長さに設定
     RaycastHit[] allHits = Physics.RaycastAll(ray, maxRayDistance);
 
+  Vector3 directionFromCenterToHit = new Vector3(0, 0, 0); // 初期化
+            float sphereRadius = 0f;
+            Vector3 spherePosition =new Vector3(0, 0, 0); // 初期化
+
     if (allHits.Length > 0)
     {
         allHits = allHits.OrderBy(h => h.distance).ToArray();
@@ -354,7 +305,7 @@ public void TouchSystem()
         if (foundValidTarget && sphereCollider != null)
         {
             // 猫のオブジェクトとの距離をチェック
-                {
+            {
                 //猫からこの距離以内の場所をタッチした場合は、ターゲットを動かさない
                 float minDistanceToMoveTarget = catSystem.moveSpeed * 6f; // ここで距離の閾値を設定
                 float distanceToCat = Vector3.Distance(finalHit.point, catSystem.transform.position);
@@ -365,71 +316,32 @@ public void TouchSystem()
                 }
             }
 
-Vector3 direction =
-(finalHit.point - sphere.transform.position).normalized;
+            // --- ターゲットの移動処理 ---
+            directionFromCenterToHit = (finalHit.point - sphere.transform.position).normalized;
+            sphereRadius = sphereCollider.radius * GetMaxAbsScale(sphere.transform.lossyScale);
+            spherePosition = sphere.transform.position + (directionFromCenterToHit * sphereRadius);
 
-// -------------------------------
-// 画面上半分なら裏面へ変換
-// -------------------------------
+        }
 
-if (Input.mousePosition.y > Screen.height * 0.5f)
-{
-    Transform cam = mainCamera.transform;
+    }
+     //タッチをした箇所が　画面の上部20%以内の場合は、ターゲットを球体の反対側に移動させる 反対とは、Z軸のみ「-」にする
+    else if (Input.mousePosition.y > Screen.height * 0.7f)
+    {
+        Debug.Log("画面上部20%以内をタッチしたため、ターゲットを球体の反対側に移動させます。");
+        directionFromCenterToHit = (mainCamera.transform.position - sphere.transform.position).normalized;
+        directionFromCenterToHit.z *= -1; // Z軸を反転
+        sphereRadius = sphereCollider.radius * GetMaxAbsScale(sphere.transform.lossyScale);
+        spherePosition = sphere.transform.position + (directionFromCenterToHit * sphereRadius);
+    }
 
-    Vector3 camForward =
-        cam.forward;
+    targetObject.transform.position = spherePosition;
+            targetObject.transform.SetParent(sphere.transform);
 
-    Vector3 camRight =
-        cam.right;
-
-    Vector3 camUp =
-        Vector3.Cross(camRight, camForward);
-
-    float x =
-        Vector3.Dot(direction, camRight);
-
-    float y =
-        Vector3.Dot(direction, camUp);
-
-    float z =
-        Vector3.Dot(direction, camForward);
-
-    // 奥へ
-    z *= -1f;
-
-    direction =
-        (
-            camRight * x +
-            camUp * y +
-            camForward * z
-        ).normalized;
-}
-
-float sphereRadius =
-sphereCollider.radius *
-GetMaxAbsScale(sphere.transform.lossyScale);
-
-Vector3 spherePosition =
-sphere.transform.position +
-direction *
-sphereRadius;
-
-targetObject.transform.position =
-spherePosition;
-
-targetObject.transform.up =
-direction;
-
-targetObject.transform.SetParent(
-sphere.transform);
-
-
-            targetObject.transform.up = direction; // 球体中心から外側へのベクトル
+            // 向きの調整
+            targetObject.transform.up = directionFromCenterToHit; // 球体中心から外側へのベクトル
 
             // 球体を回転させる
             RotateSphereToFaceTarget();
-        }
-    }
 }
 
     // --- RotateSphereToFaceTarget メソッドの修正・追加 ---
@@ -470,6 +382,7 @@ void RotateSphereToFaceTarget()
             sphere.transform.rotation = targetRotation;
         });
 }
+
     // ... (GetMaxAbsScale, GameEnd, GameEndCoroutine, SphereSet, AddAllRenderersFrom メソッドは変更なし) ...
     /// <summary>
     /// ロススケールの各軸の絶対値の最大値を取得する
@@ -549,6 +462,12 @@ void RotateSphereToFaceTarget()
         catSystem.MoveCatSet(this);
         playerData.Save();
         FindFirstObjectByType<CatUISystem>().PaperSet(sphereSpec);
+        // ゲートの位置を球体の表面のランダムな位置に設定
+        Vector3 randomDirection = Random.onUnitSphere; // 球体の表面上のランダムな方向
+        Vector3 gatePosition = sphere.transform.position + randomDirection * sphereCollider.radius * sphere.transform.lossyScale.y; // 球体の表面上の位置
+        GameObject gateObject = Instantiate(this.gateObject, gatePosition, Quaternion.identity); // ゲートオブジェクトを取得
+        gateObject.transform.SetParent(sphere.transform); // ゲートを球体の子に設定
+        gateObject.transform.up = randomDirection; // ゲートの上方向を球体の中心から外側に向ける
     }
 private void AddAllRenderersFrom(GameObject obj, HashSet<Renderer> rendererSet)
 {
@@ -565,4 +484,5 @@ private void AddAllRenderersFrom(GameObject obj, HashSet<Renderer> rendererSet)
         rendererSet.Add(r);
     }
 }
+
 }

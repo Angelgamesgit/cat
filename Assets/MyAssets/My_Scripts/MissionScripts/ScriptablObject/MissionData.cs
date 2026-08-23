@@ -7,7 +7,7 @@ public class MissionData : ScriptableObject
     public string Description; //ミッションの説明
     public Sprite foodSprite; //ミッションの食料アイコン
     public FoodData foodData; //ミッションの食料データ
-    public CookSystem.CookPattern cookPattern; //ミッションの大成功料理のパターン
+    public Cook_KitchenSystem.CookPattern cookPattern; //ミッションの大成功料理のパターン
     public CatData catData; //ミッションの猫のデータ
 
     public float missionTime; //ミッションの制限時間

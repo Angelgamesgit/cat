@@ -4,8 +4,7 @@ using UnityEngine;
 using System.Linq; // Dictionaryへの変換で利用
 public class DaySphereSystem : MonoBehaviour
 {
-    [SerializeField]
-    Light dictonalLight;
+  
     [Serializable]
     public class DaySphere
     {
@@ -37,13 +36,6 @@ public class DaySphereSystem : MonoBehaviour
                 sphere.Value.SetActive(false);
             }
         }
-        if (type == DaySphereType.Night)
-        {
-            dictonalLight.gameObject.SetActive(false);
-        }
-        else
-        {
-            dictonalLight.gameObject.SetActive(true);
-        }
+
     }
 }

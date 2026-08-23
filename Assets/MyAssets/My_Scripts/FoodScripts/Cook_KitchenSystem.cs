@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class CookSystem : MonoBehaviour
+public class Cook_KitchenSystem : MonoBehaviour
 {//料理システムのスクリプト
     FoodData[] foodDatas; //食べ物のデータを格納する配列
     public  enum CookPattern
