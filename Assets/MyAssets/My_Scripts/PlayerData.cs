@@ -12,17 +12,8 @@ public class PlayerData : ScriptableObject
 
     public SphereSpec currentSphereSpec;
 
-public FoodData currentFoodData;
+public LostItemData currentLostItemData;
 
-    public enum BagType
-    {
-        Normal,
-        Big,
-        Hot,
-        Speed,
-        Lucky
-    }
-public BagType currentBagType;
     [ContextMenu("SavePlayerData")]
     public void Save()
     {
@@ -35,17 +26,6 @@ public BagType currentBagType;
 
     }
 
-    //
-    public void ChangeCurrentFoodData(FoodData newFoodData)
-    {
-        currentFoodData = newFoodData;
-        Save();
-    }
-    public void ChangeCurrentBagType(BagType newBagType)
-    {
-        currentBagType = newBagType;
-        Save();
-    }
     public void RemoveItem()
     {
         {

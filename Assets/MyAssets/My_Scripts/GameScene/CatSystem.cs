@@ -102,8 +102,6 @@ public class CatSystem : MonoBehaviour
         CatBehaviorUpdate();
         // 足音のタイミングを管理
         CatFootStepTime();
-        //キッチンの近くかどうか取得する
-        isNearKitchen();
     }
 
     /// <summary>
@@ -263,22 +261,7 @@ public class CatSystem : MonoBehaviour
     // --- 以下、既存のロジック（FindforFriends, 足音, Trigger関連） ---
     // これらのロジックは移動のスムーズさに直接影響しないため、大きな変更は加えていません。
 
-    public bool FindforFriends()
-    {
-        if(this.GetComponent<FindCat>() != null) return false;
-
-        if (system.findCatObject == null) return false;
-        // ターゲット猫へのベクトルと現在の前方ベクトルを計算
-        Vector3 targetDir = system.findCatObject.transform.position - transform.position;
-        float targetDistance = targetDir.magnitude;
-        float sightAngle = 60f;
-        float cosHalf = Mathf.Cos(sightAngle / 2 * Mathf.Deg2Rad);
-        float innerProduct = Vector3.Dot(transform.forward, targetDir.normalized);
-        // ターゲット猫が視界内にいるか、距離が近いか、またはすでに触れている場合はtrueを返す
-        if (touchCat) return touchCat;
-        // ターゲット猫が視界内にいて、かつ距離が近い場合にtrueを返す
-        return innerProduct > cosHalf && targetDistance < moveSpeed * 1.5f;
-    }
+   
 
     #region 足音の再生
     IEnumerator PlayFootstepSound(AnimState state)
@@ -391,21 +374,6 @@ public class CatSystem : MonoBehaviour
         if (currentState == state) { return; }
         currentState = state;
         animator.SetTrigger(state.ToString());
-    }
-
-    void isNearKitchen()
-    {
-        if (system.kitchenObject == null) return;
-        float kitchenDistance = Vector3.Distance(transform.position, system.kitchenObject.transform.position);
-        if (kitchenDistance <  10f)
-        {
-        FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(true);
-        }
-        //
-        else
-        {
-        FindObjectsByType<UISystem>(FindObjectsSortMode.None).First().KitichenButton.SetActive(false);
-        }
     }
 
     void OpenGate()

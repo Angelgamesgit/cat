@@ -15,8 +15,6 @@ public class GameSystem : MonoBehaviour
 
     [SerializeField]
     public GameObject sphere;
-
-
     public Camera mainCamera;
 
     // 初期カメラ位置と回転を保存する変数
@@ -36,8 +34,6 @@ public class GameSystem : MonoBehaviour
     public GameObject findCatObject;
 
     CatPlayer catSystem;
-
-
     [Tooltip("このオブジェクトが正面に来るように”星”が回転する このオブジェクトとの中間にあるオブジェクトを半透明にする")]
     public GameObject targetObject;
 
@@ -60,12 +56,7 @@ public class GameSystem : MonoBehaviour
     FindCat findCat;
     public CatData findCatData;
 public CatData[]  catData;
-    public enum MissionState
-    {
-        None,
-        Play,
-    }
-public static MissionState missionState = MissionState.None;
+
 
     //猫が追いかけるターゲットのオブジェクトが指定の位置にあるかをチェック　タッチで場所を変えた場合は猫とターゲットの最低距離をなくす
     // ▼▼▼ 変更点: targetObjMoveフラグは新しいロジックでは不要となるためコメントアウト ▼▼▼
@@ -75,10 +66,10 @@ public static MissionState missionState = MissionState.None;
     DaySphereSystem daySphereSystem;
     [SerializeField]
     WeatherSystem weatherSystem;
-    public GameObject kitchenObject;
     [SerializeField]
     GameObject gateObject;
 
+    LostItemData lostItemData;
     void Start()
     {
         QualitySettings.vSyncCount = 0;
@@ -92,7 +83,6 @@ public static MissionState missionState = MissionState.None;
         Vector3 targetPositionOnSurface = sphere.transform.position + (sphere.transform.up * sphereCollider.radius * sphere.transform.localScale.y);
         targetObject.transform.position = targetPositionOnSurface;
         targetObject.transform.up = (targetObject.transform.position - sphere.transform.position).normalized;
-        kitchenObject = GameObject.FindGameObjectWithTag("Kitchen");
         // UIの初期化
     }
 
@@ -131,6 +121,14 @@ public static MissionState missionState = MissionState.None;
         findCat.StartSet(this);
         findCat.catData = catData[i];
         findCatObject.transform.up = upDirection;
+
+        //猫のデータからみつけてくるアイテムもスフィア上に配置する
+        randomDirection = Random.insideUnitSphere.normalized;
+        spawnPosition = sphere.transform.position + (randomDirection * sphereRadius);
+        upDirection = randomDirection.normalized;
+        GameObject treasure = Instantiate(findCat.catData.FindTreasurePrefab, spawnPosition, Quaternion.identity, sphere.transform);
+        treasure.transform.up = upDirection;
+
         /// <summary>
         /// 後々データから反映するもの、　スフィアのデータから猫のデータを取得して、猫の種類や見た目を変える　猫のデータから、猫の行動パターンやアニメーションを変える
         /// </summary>
@@ -187,7 +185,8 @@ public static MissionState missionState = MissionState.None;
         }
         if(Input.GetMouseButtonUp(0))
         {
-            targetObject.SetActive(false);
+            //確認用に一時的にコメントアウト
+            //targetObject.SetActive(false);
             RotateSphereToFaceTarget();
         }
 
@@ -323,6 +322,11 @@ public void TouchSystem()
 
         }
 
+        if (finalHit.collider.CompareTag("LostItem"))
+            {
+            TouchedLostItem(finalHit.collider.GetComponent<LostItem>());
+            }
+
     }
      //タッチをした箇所が　画面の上部20%以内の場合は、ターゲットを球体の反対側に移動させる 反対とは、Z軸のみ「-」にする
     else if (Input.mousePosition.y > Screen.height * 0.7f)
@@ -343,6 +347,22 @@ public void TouchSystem()
             // 球体を回転させる
             RotateSphereToFaceTarget();
 }
+
+void TouchedLostItem(LostItem lostItem)
+    {
+        if (playerData.currentLostItemData == null)
+        {
+            Debug.Log("ロストアイテムがタッチされました: " + lostItem.lostItemData.name);
+            // ここでロストアイテムに関連する処理を実行
+            playerData.currentLostItemData = lostItem.lostItemData;
+            playerData.Save();
+        }
+        else
+        {
+            Debug.Log("ロストアイテムのデータが設定されています。現在のロストアイテム: " + playerData.currentLostItemData.name);
+            //
+        }
+    }
 
     // --- RotateSphereToFaceTarget メソッドの修正・追加 ---
 /// <summary>
@@ -395,14 +415,12 @@ void RotateSphereToFaceTarget()
     }
     void GameEnd()
     {
-        if (!catSystem.FindforFriends()) return;
         if (!playerData.catFound.Contains(findCatData))
         {
             playerData.catFound.Add(findCatData);
         }
         playerData.Save();
         isPlaying = false;
-        MissionSystem.missionSystem.missionUISystem.ShowCatInfoUI(catSystem.touchCatData); // ミッション終了の処理を呼び出す
     }
 
 /// <summary>
@@ -430,7 +448,6 @@ void RotateSphereToFaceTarget()
         weatherSystem.WeatherSet(playerData.currentSphereSpec.weatherState);
         //猫の生成位置画面真ん中　
         Vector3 insPos = sphere.transform.position + sphere.transform.up * sphereCollider.radius * sphere.transform.lossyScale.y;
-        Debug.Log("insPos is " + insPos);
         GameObject cat = Instantiate(playerData.CatPrefab, insPos, targetObject.transform.rotation);
         cat.transform.SetParent(sphere.transform);
         catSystem = cat.GetComponent<CatPlayer>();

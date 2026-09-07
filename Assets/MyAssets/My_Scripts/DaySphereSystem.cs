@@ -26,6 +26,8 @@ public class DaySphereSystem : MonoBehaviour
     Dictionary<DaySphereType, GameObject> sphereDic;
     public void SphreSet(DaySphereType type)
     {
+sphereDic = new Dictionary<DaySphereType, GameObject>();
+
         sphereDic = daySpheres.ToDictionary(set => set.type, set => set.sphereObject);
         sphereDic[type].SetActive(true);
         //他のSphereを非表示にする
@@ -37,5 +39,10 @@ public class DaySphereSystem : MonoBehaviour
             }
         }
 
+    }
+    void Update()
+    {
+        //空の球体をゆっくり回転させる
+        sphereDic.FirstOrDefault(x => x.Value.activeSelf).Value.transform.Rotate(new Vector3 (1,1,0) * 0.01f);
     }
 }

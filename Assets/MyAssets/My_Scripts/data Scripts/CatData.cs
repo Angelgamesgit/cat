@@ -7,4 +7,6 @@ public class CatData : ScriptableObject
     public Material targetMaterial;
 
     public Sprite catIcon;
+
+    public GameObject FindTreasurePrefab;
 }
