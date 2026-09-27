@@ -302,80 +302,298 @@ public CatData[]  catData;
     }
 public void TouchSystem()
 {
-    if(lightResourceSystem.IsDepleted)
+    // 光が残っていない場合は何もしない
+    if (lightResourceSystem == null)
     {
-        Debug.Log("光が0のため、ターゲットを移動できません。");
+        Debug.LogError(
+            "LightResourceSystemが設定されていません。"
+        );
+
         return;
     }
-    Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-    float maxRayDistance = sphere.transform.lossyScale.x * 5f; // 十分な長さに設定
-    RaycastHit[] allHits = Physics.RaycastAll(ray, maxRayDistance);
 
-  Vector3 directionFromCenterToHit = new Vector3(0, 0, 0); // 初期化
-            float sphereRadius = 0f;
-            Vector3 spherePosition =new Vector3(0, 0, 0); // 初期化
+    if (lightResourceSystem.IsDepleted)
+    {
+        Debug.Log(
+            "光が0のため、ターゲットを移動できません。"
+        );
+
+        return;
+    }
+
+
+    if (mainCamera == null)
+    {
+        Debug.LogError(
+            "Main Cameraが設定されていません。"
+        );
+
+        return;
+    }
+
+
+    if (sphereCollider == null)
+    {
+        sphereCollider =
+            sphere.GetComponent<SphereCollider>();
+    }
+
+
+    Vector2 screenPosition =
+        Input.mousePosition;
+
+
+    // --------------------------------------------------
+    // 1. 光システムにタッチ位置を渡す
+    // --------------------------------------------------
+
+    Transform lightTarget = null;
+
+    if (lightTargetSystem != null)
+    {
+        lightTarget =
+            lightTargetSystem.ProcessTouch(
+                screenPosition
+            );
+    }
+
+
+    // --------------------------------------------------
+    // 2. 通常のタッチ位置を取得
+    // --------------------------------------------------
+
+    Ray ray =
+        mainCamera.ScreenPointToRay(
+            screenPosition
+        );
+
+    float maxRayDistance =
+        sphere.transform.lossyScale.x * 5f;
+
+
+    RaycastHit[] allHits =
+        Physics.RaycastAll(
+            ray,
+            maxRayDistance
+        );
+
+
+    Vector3 directionFromCenterToHit =
+        Vector3.zero;
+
+    Vector3 spherePosition =
+        Vector3.zero;
+
+
+    bool foundSurface =
+        false;
+
 
     if (allHits.Length > 0)
     {
-        allHits = allHits.OrderBy(h => h.distance).ToArray();
-        RaycastHit finalHit = default;
-        bool foundValidTarget = false;
+        allHits =
+            allHits
+                .OrderBy(h => h.distance)
+                .ToArray();
 
-        foreach (RaycastHit hit in allHits)
+
+        foreach (
+            RaycastHit hit
+            in allHits)
         {
-            if (hit.collider.CompareTag("Untagged")) continue;
-            finalHit = hit;
-            foundValidTarget = true;
+            // タグなしColliderを無視
+            if (hit.collider.CompareTag(
+                    "Untagged"))
+            {
+                continue;
+            }
+
+
+            Vector3 direction =
+                (
+                    hit.point -
+                    sphere.transform.position
+                ).normalized;
+
+
+            directionFromCenterToHit =
+                direction;
+
+
+            float sphereRadius =
+                sphereCollider.radius *
+                GetMaxAbsScale(
+                    sphere.transform.lossyScale
+                );
+
+
+            spherePosition =
+                sphere.transform.position +
+                directionFromCenterToHit *
+                sphereRadius;
+
+
+            foundSurface =
+                true;
+
             break;
         }
+    }
 
-        if (foundValidTarget && sphereCollider != null)
+
+    // --------------------------------------------------
+    // 3. タッチ地点が取得できなかった場合
+    // --------------------------------------------------
+
+    if (!foundSurface)
+    {
+        // 従来仕様
+        // 画面上部をタッチした場合
+        // 球体反対側を目的地にする
+
+        if (
+            Input.mousePosition.y >
+            Screen.height * 0.7f
+        )
         {
-            // 猫のオブジェクトとの距離をチェック
-            {
-                //猫からこの距離以内の場所をタッチした場合は、ターゲットを動かさない
-                float minDistanceToMoveTarget = catSystem.moveSpeed * 6f; // ここで距離の閾値を設定
-                float distanceToCat = Vector3.Distance(finalHit.point, catSystem.transform.position);
-                if (distanceToCat < minDistanceToMoveTarget)
-                {
-                    //Debug.Log("猫に近すぎるためターゲットを移動しません。距離: " + distanceToCat);
-                    return; // ここで処理を中断
-                }
-            }
-            directionFromCenterToHit = (finalHit.point - sphere.transform.position).normalized;
-            sphereRadius = sphereCollider.radius * GetMaxAbsScale(sphere.transform.lossyScale);
-            spherePosition = sphere.transform.position + (directionFromCenterToHit * sphereRadius);
+            Debug.Log(
+                "画面上部をタッチ。" +
+                "ターゲットを球体反対側へ移動します。"
+            );
+
+
+            directionFromCenterToHit =
+                (
+                    mainCamera.transform.position -
+                    sphere.transform.position
+                ).normalized;
+
+
+            directionFromCenterToHit.z *= -1f;
+
+
+            float sphereRadius =
+                sphereCollider.radius *
+                GetMaxAbsScale(
+                    sphere.transform.lossyScale
+                );
+
+
+            spherePosition =
+                sphere.transform.position +
+                directionFromCenterToHit *
+                sphereRadius;
+
+
+            foundSurface =
+                true;
         }
     }
-     //タッチをした箇所が　画面の上部20%以内の場合は、ターゲットを球体の反対側に移動させる 反対とは、Z軸のみ「-」にする
-    else if (Input.mousePosition.y > Screen.height * 0.7f)
+
+
+    if (!foundSurface)
     {
-        Debug.Log("画面上部20%以内をタッチしたため、ターゲットを球体の反対側に移動させます。");
-        directionFromCenterToHit = (mainCamera.transform.position - sphere.transform.position).normalized;
-        directionFromCenterToHit.z *= -1; // Z軸を反転
-        sphereRadius = sphereCollider.radius * GetMaxAbsScale(sphere.transform.lossyScale);
-        spherePosition = sphere.transform.position + (directionFromCenterToHit * sphereRadius);
+        return;
     }
 
-    Transform target =
-    lightTargetSystem.TouchPosition(spherePosition);
 
-if (target != null)
-{
-    // 光が当たった対象が存在した
-    targetObject =
-        target.gameObject;
-}
-else
-{
-    // 対象がなかった。 今まで通りタッチ地点を目的地にする
-    targetObject.transform.position = spherePosition;
-}
-    targetObject.transform.SetParent(sphere.transform);
-    // 向きの調整
-    targetObject.transform.up = directionFromCenterToHit; // 球体中心から外側へのベクトル
-// 球体を回転させる;
-RotateSphereToFaceTarget();
+    // --------------------------------------------------
+    // 4. 猫に近すぎる場所への移動を防止
+    // --------------------------------------------------
+
+    if (catSystem != null)
+    {
+        float minDistanceToMoveTarget =
+            catSystem.moveSpeed * 6f;
+
+
+        float distanceToCat =
+            Vector3.Distance(
+                spherePosition,
+                catSystem.transform.position
+            );
+
+
+        if (
+            distanceToCat <
+            minDistanceToMoveTarget
+        )
+        {
+            Debug.Log(
+                "猫に近すぎるため、" +
+                "ターゲットを移動しません。"
+            );
+
+            return;
+        }
+    }
+
+
+    // --------------------------------------------------
+    // 5. 光が当たった対象がある場合
+    //    タッチ地点ではなく対象を目的地にする
+    // --------------------------------------------------
+
+    if (lightTarget != null)
+    {
+        Debug.Log(
+            "光が当たった対象を目的地に変更: " +
+            lightTarget.name
+        );
+
+
+        targetObject.transform.position =
+            lightTarget.position;
+
+
+        // 対象が球体上にあることを前提に
+        // 球体中心から外側への方向を計算
+        directionFromCenterToHit =
+            (
+                lightTarget.position -
+                sphere.transform.position
+            ).normalized;
+    }
+    else
+    {
+        // --------------------------------------------------
+        // 6. 対象がなければ通常通り
+        //    タッチ地点を目的地にする
+        // --------------------------------------------------
+
+        Debug.Log(
+            "光が当たった対象なし。" +
+            "タッチ地点を目的地にします。"
+        );
+
+
+        targetObject.transform.position =
+            spherePosition;
+    }
+
+
+    // --------------------------------------------------
+    // 7. targetObjectを球体の子にする
+    // --------------------------------------------------
+
+    targetObject.transform.SetParent(
+        sphere.transform
+    );
+
+
+    // --------------------------------------------------
+    // 8. 球体表面に対して正しい向きにする
+    // --------------------------------------------------
+
+    targetObject.transform.up =
+        directionFromCenterToHit;
+
+
+    // --------------------------------------------------
+    // 9. 球体を回転させる
+    // --------------------------------------------------
+
+    RotateSphereToFaceTarget();
 }
 
 public void LostItemTouched()
