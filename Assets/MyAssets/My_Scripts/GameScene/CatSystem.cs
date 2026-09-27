@@ -90,14 +90,13 @@ public class CatSystem : MonoBehaviour
         jumpDifference = 0f;
         distance = 0f;
         rotationSlerpFactor = 0.2f;
-        rundistance = moveSpeed * 50f;
+        rundistance = moveSpeed * 25f;
         obstacleTag = "Obstacle";
     }
 
     public virtual void Update()
     {
         if (!system.isPlaying) return;
-
         // メインの更新処理を呼び出し
         CatBehaviorUpdate();
         // 足音のタイミングを管理
@@ -110,7 +109,6 @@ public class CatSystem : MonoBehaviour
     private void CatBehaviorUpdate()
     {
         if (targetObject == null || sphereObject == null) return;
-
         // ▼ STEP 1: 現状と目標値を計算する ▼
         distance = Vector3.Distance(transform.position, targetObject.position);
         float targetHeight = CalculateTargetHeight();

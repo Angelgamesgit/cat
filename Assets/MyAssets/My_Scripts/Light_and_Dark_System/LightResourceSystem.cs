@@ -87,7 +87,7 @@ public class LightResourceSystem : MonoBehaviour
 
 
     /// <summary>
-    /// 光が0になっているか。
+    /// 光が0になっているか。 0だとtrue。
     /// </summary>
     public bool IsDepleted
     {
@@ -245,7 +245,6 @@ public class LightResourceSystem : MonoBehaviour
 
             return false;
         }
-
         return true;
     }
 
@@ -259,9 +258,7 @@ public class LightResourceSystem : MonoBehaviour
         {
             return;
         }
-        GameSystem.Instance.GameEnd();
         depletedNotified = true;
-
         OnLightChanged?.Invoke(
             0f
         );
@@ -275,8 +272,6 @@ public class LightResourceSystem : MonoBehaviour
                 "光残量が0になりました。"
             );
         }
-
-        gameSystem.isPlaying = false;
     }
 
     /// <summary>
@@ -288,14 +283,6 @@ public class LightResourceSystem : MonoBehaviour
         {
             return;
         }
-    }
-
-    /// <summary>
-    /// 光の消費を停止。
-    /// </summary>
-    public void StopLight()
-    {
-        gameSystem.isPlaying = false;
     }
 
     /// <summary>

@@ -18,7 +18,7 @@ public class CatPlayer : CatSystem
         }
         if(other.CompareTag("Cat"))
         {
-            system.GameEnd();
+            system.GameClear();
         }
     }
 }

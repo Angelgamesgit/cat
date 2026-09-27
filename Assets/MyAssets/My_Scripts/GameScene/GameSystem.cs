@@ -78,6 +78,8 @@ public CatData[]  catData;
     Transform catLightTransform,targetLightTransform;
     [SerializeField]
     LightResourceSystem lightResourceSystem;
+    [SerializeField]
+    LightTargetSystem lightTargetSystem;
 
     void Awake()
     {
@@ -150,7 +152,7 @@ public CatData[]  catData;
         upDirection = randomDirection.normalized;
         GameObject lostItem = Instantiate(findCat.catData.FindTreasurePrefab, spawnPosition, Quaternion.identity);
         lostItem.transform.up = upDirection;
-        lostItem.transform.SetParent(sphere.transform); 
+        lostItem.transform.SetParent(sphere.transform);
     find_LostItem = false; //落とし物を拾った後のフラグを初期化
         /// <summary>
         /// 後々データから反映するもの、　スフィアのデータから猫のデータを取得して、猫の種類や見た目を変える　猫のデータから、猫の行動パターンやアニメーションを変える
@@ -201,17 +203,16 @@ public CatData[]  catData;
     {
         if (!isPlaying) return;
         BetweenCameraAndObject();
-        if(Input.GetMouseButton(0))
-        {
-        }
+
         if(Input.GetMouseButtonUp(0))
         {
-            RotateSphereToFaceTarget();
             TouchSystem();
             lightResourceSystem.UseLightByTouch();
         }
         catLightTransform.LookAt(catSystem.transform.position);
         targetLightTransform.LookAt(targetObject.transform.position);
+        //終了処理を確認
+        GameEnd();
     }
 
 
@@ -301,6 +302,11 @@ public CatData[]  catData;
     }
 public void TouchSystem()
 {
+    if(lightResourceSystem.IsDepleted)
+    {
+        Debug.Log("光が0のため、ターゲットを移動できません。");
+        return;
+    }
     Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
     float maxRayDistance = sphere.transform.lossyScale.x * 5f; // 十分な長さに設定
     RaycastHit[] allHits = Physics.RaycastAll(ray, maxRayDistance);
@@ -312,7 +318,7 @@ public void TouchSystem()
     if (allHits.Length > 0)
     {
         allHits = allHits.OrderBy(h => h.distance).ToArray();
-        RaycastHit finalHit = default(RaycastHit);
+        RaycastHit finalHit = default;
         bool foundValidTarget = false;
 
         foreach (RaycastHit hit in allHits)
@@ -351,13 +357,25 @@ public void TouchSystem()
         spherePosition = sphere.transform.position + (directionFromCenterToHit * sphereRadius);
     }
 
-    targetObject.transform.position = spherePosition;
-    targetObject.transform.SetParent(sphere.transform);
+    Transform target =
+    lightTargetSystem.TouchPosition(spherePosition);
 
+if (target != null)
+{
+    // 光が当たった対象が存在した
+    targetObject =
+        target.gameObject;
+}
+else
+{
+    // 対象がなかった。 今まで通りタッチ地点を目的地にする
+    targetObject.transform.position = spherePosition;
+}
+    targetObject.transform.SetParent(sphere.transform);
     // 向きの調整
     targetObject.transform.up = directionFromCenterToHit; // 球体中心から外側へのベクトル
-// 球体を回転させる
-    RotateSphereToFaceTarget();
+// 球体を回転させる;
+RotateSphereToFaceTarget();
 }
 
 public void LostItemTouched()
@@ -416,12 +434,29 @@ void RotateSphereToFaceTarget()
     {
         return Mathf.Max(Mathf.Abs(lossyScale.x), Mathf.Abs(lossyScale.y), Mathf.Abs(lossyScale.z));
     }
+
+    public void GameClear()
+    {
+        //ゲームクリア
+        playerData.Save();
+        isPlaying = false;
+        //シーンを再読み込み
+        CatSceneManager.Instantiate().currentSceneLoad();
+    }
     /// <summary>
-    /// ゲーム終了処理
+    /// ゲーム終了処理 失敗
     /// </summary>
     public void GameEnd()
     {
-        //ゲームクリア
+        //
+        if(!lightResourceSystem.IsDepleted || catSystem.currentState != CatPlayer.AnimState.idle)
+        {
+            /// <summary>
+            /// /猫のアニメーションがまだ動いている場合は、ゲーム終了処理を実行しない
+            /// </summary>
+            return;
+        }
+        Debug.Log("ゲーム終了条件を満たしたため、ゲーム終了処理を実行します。");
         playerData.Save();
         isPlaying = false;
         //シーンを再読み込み
