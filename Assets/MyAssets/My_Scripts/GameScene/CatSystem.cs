@@ -85,12 +85,12 @@ public class CatSystem : MonoBehaviour
         currentState = AnimState.idle;
         isInSea = false;
         if (seaBoat != null) seaBoat.SetActive(false);
-        moveSpeed = 0.5f;
+        moveSpeed = 0.3f;
         otherHeight = new Dictionary<Collider, float>();
         jumpDifference = 0f;
         distance = 0f;
         rotationSlerpFactor = 0.2f;
-        rundistance = moveSpeed * 10f;
+        rundistance = moveSpeed * 50f;
         obstacleTag = "Obstacle";
     }
 
@@ -119,8 +119,12 @@ public class CatSystem : MonoBehaviour
 
         // ▼ STEP 2: 高さや向きを滑らかに補間する ▼
         jumpDifference = Mathf.Lerp(jumpDifference, targetHeight, heightLerpFactor);
-
-        if (speedRatio < 0.01f) return; // ほぼ停止している時は回転処理をスキップして、アニメーションの更新だけ行う
+        if (speedRatio < 0.01f)
+        {
+            //停止しているのでアニメーションをidleに設定
+            UpdateAnimationState(targetHeight, speedRatio);
+             return; // ほぼ停止している時は回転処理をスキップして、アニメーションの更新だけ行う
+        }
         Vector3 selfToCenter = transform.position - sphereObject.position;
         Quaternion targetRotation = Quaternion.LookRotation(targetObject.position - transform.position, selfToCenter.normalized);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSlerpFactor);

@@ -38,7 +38,11 @@ public class UISystem : MonoBehaviour
 
     public Image darkFadeImage;
     public GameObject itemGetPanel;
-   public GameObject KitichenButton;
+public GameObject KitichenButton;
+[SerializeField]
+LightResourceSystem lightResourceSystem;
+[SerializeField]
+Image LightBarImage;
 
 void Awake()
     {
@@ -61,6 +65,14 @@ void Awake()
     void Update()
     {
         RingRotate();
+        LightCneck();
+    }
+void LightCneck()
+    {
+        if (LightBarImage == null) return;
+
+        float lightRate = lightResourceSystem.LightRate;
+        LightBarImage.fillAmount = lightRate;
     }
 
     public void SphereChangeOpen()
@@ -254,8 +266,8 @@ void Awake()
         Sequence seq = DOTween.Sequence();
 
         seq.Append(iconRect.DOScale(1f, duration).SetEase(easeType)) // アイコンが拡大
-           .AppendCallback(() =>
-           {
+        .AppendCallback(() =>
+        {
                // 爆発エフェクトをアイコンの位置に生成
                if (explosionEffectPrefab != null)
                {
@@ -611,13 +623,12 @@ void Awake()
 
     #region ガーデン用のボタン
 
-
     /// <summary>
     /// ボタンを展開するアニメーション
     /// </summary>
     [SerializeField]
     GameObject buttonUp, buttonLeft, buttonExpand, buttonShrink;
-      [Header("アニメーション設定")]
+    [Header("アニメーション設定")]
     [SerializeField] private float animationDuration = 0.3f;
     [SerializeField] private Ease expandEase = Ease.OutBack; // 展開時の動き
     [SerializeField] private Ease shrinkEase = Ease.InBack;  // 収納時の動き
@@ -625,10 +636,10 @@ void Awake()
     private RectTransform rectOriginal,  rectUp, rectLeft;
     private Vector2 buttonOriginalPosition;
     public void ExpandButtons()
-    {   
+    {
         rectUp = buttonUp.GetComponent<RectTransform>();
         rectLeft = buttonLeft.GetComponent<RectTransform>();
-        rectOriginal = buttonExpand.GetComponent<RectTransform>();  
+        rectOriginal = buttonExpand.GetComponent<RectTransform>();
 
         // ボタンAの初期位置を保存
         buttonOriginalPosition = rectOriginal.anchoredPosition;
@@ -664,10 +675,8 @@ void Awake()
     public void ShrinkButtons()
     {
         buttonShrink.gameObject.SetActive(false);
-        
         // 2つのボタンをボタンAの初期位置に戻す
         rectUp.DOAnchorPos(buttonOriginalPosition, animationDuration).SetEase(shrinkEase);
-        
         // どちらかのアニメーション完了後(OnComplete)に、オブジェクトの状態を整理する
         rectLeft.DOAnchorPos(buttonOriginalPosition, animationDuration).SetEase(shrinkEase)
             .OnComplete(() =>

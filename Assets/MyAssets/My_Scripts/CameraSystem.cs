@@ -8,7 +8,7 @@ public class CameraSystem : MonoBehaviour
 {
     public Camera mainCamera;
     public Camera subCamera;
-
+    public Transform LightTransform;
 [SerializeField]
     Canvas canvas;
     void Start()
