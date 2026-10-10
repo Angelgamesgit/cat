@@ -260,8 +260,7 @@ public class LightTargetSystem : MonoBehaviour
     /// Spot Lightをカメラから
     /// タッチ地点方向へ向ける。
     /// </summary>
-    private void AimSpotLight(
-        Vector3 targetPosition)
+    private void AimSpotLight(Vector3 targetPosition)
     {
         if (!rotateSpotLight)
         {

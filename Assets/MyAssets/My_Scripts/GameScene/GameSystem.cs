@@ -1,11 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using Random = UnityEngine.Random;
-using DG.Tweening;
 using System.Linq;
 using Unity.VisualScripting;
-using UnityEngine.SceneManagement;
 
 
 //  UI判定に必要
@@ -13,6 +11,9 @@ public class GameSystem : MonoBehaviour
 {
     public static GameSystem Instance { get; private set; }
     public bool isPlaying;
+    [SerializeField] private CameraSystem cameraSystem;
+    [SerializeField] private TouchSystem touchSystem;
+    [SerializeField] private GameEventSystem gameEventSystem;
 
 //落とし物を拾った後かどうかをチェックするフラグ　拾った後がtrue
     public bool find_LostItem;
@@ -20,17 +21,10 @@ public class GameSystem : MonoBehaviour
 
     [SerializeField]
     public GameObject sphere;
+    public GameObject lostItemPrefab;
     public Camera mainCamera;
 
-    // 初期カメラ位置と回転を保存する変数
-    Vector3 cameraPos;
-    Quaternion cameraRotation;
 
-    [Header("Camera Settings")]
-    [Tooltip("猫の正面にカメラを配置する際の距離")]
-    [SerializeField] private float cameraFrontDistance;
-    [Tooltip("猫の正面にカメラを配置する際の高さ")]
-    [SerializeField] private float cameraFrontHeight;
 
 
     //見つける猫のオブジェクト
@@ -40,23 +34,12 @@ public class GameSystem : MonoBehaviour
     public GameObject findCatObject;
 
     CatPlayer catSystem;
-    [Tooltip("このオブジェクトが正面に来るように”星”が回転する このオブジェクトとの中間にあるオブジェクトを半透明にする")]
+    [Tooltip("The sphere rotates to face this target. Objects between the camera and this target become transparent.")]
     public GameObject targetObject;
 
-    [Tooltip("カメラとターゲットの間にあるオブジェクトに適用するマテリアル")]
+    [Tooltip("Material applied to objects between the camera and the target.")]
     public Material replacementMaterial;
-
-    [Tooltip("透明度を変更するレイヤー (指定しない場合は全てのレイヤーをチェック)")]
-    // -1 は全てのレイヤー
-    LayerMask layerMask;
-
-    private Dictionary<Renderer, Material[]> originalMaterials;
-    private HashSet<Renderer> currentlyObstructedRenderers;
-
-    [Tooltip("球体の表面からのオフセット (矢印が球体に埋まらないように)")]
-    public float arrowOffset = 0.1f;
-
-    SphereCollider sphereCollider;
+SphereCollider sphereCollider;
 
     [SerializeField]
     FindCat findCat;
@@ -80,6 +63,9 @@ public CatData[]  catData;
     LightResourceSystem lightResourceSystem;
     [SerializeField]
     LightTargetSystem lightTargetSystem;
+    public LightResourceSystem LightResourceSystem => lightResourceSystem;
+    public LightTargetSystem LightTargetSystem => lightTargetSystem;
+    public CatPlayer PlayerCat => catSystem;
 
     void Awake()
     {
@@ -99,29 +85,40 @@ public CatData[]  catData;
     {
         AssignVariables();
         targetObject.SetActive(true);
-        // cameraPosとcameraRotationはSphereSetで初期化される
         playerData.Load();
         SphereSet(playerData.currentSphereSpec);
         //星の頂点にターゲットを配置する
         Vector3 targetPositionOnSurface = sphere.transform.position + (sphere.transform.up * sphereCollider.radius * sphere.transform.localScale.y);
         targetObject.transform.position = targetPositionOnSurface;
         targetObject.transform.up = (targetObject.transform.position - sphere.transform.position).normalized;
+        InitializeSystems();
         // UIの初期化
     }
 
-    void AssignVariables()
+        void AssignVariables()
     {
         isPlaying = false;
-        layerMask = 1 << LayerMask.NameToLayer("Object"); ; // -1 は全てのレイヤー
-        originalMaterials = new Dictionary<Renderer, Material[]>();
-        currentlyObstructedRenderers = new HashSet<Renderer>();
+        if (cameraSystem == null) cameraSystem = FindFirstObjectByType<CameraSystem>();
+        if (cameraSystem == null) cameraSystem = gameObject.AddComponent<CameraSystem>();
+        if (mainCamera == null && cameraSystem != null) mainCamera = cameraSystem.mainCamera;
+        if (touchSystem == null) touchSystem = GetComponent<TouchSystem>();
+        if (touchSystem == null) touchSystem = gameObject.AddComponent<TouchSystem>();
+        if (gameEventSystem == null) gameEventSystem = GetComponent<GameEventSystem>();
+        if (gameEventSystem == null) gameEventSystem = gameObject.AddComponent<GameEventSystem>();
+    }
+
+    private void InitializeSystems()
+    {
+        cameraSystem.SetWorldReferences(mainCamera, targetObject.transform, sphere.transform, catSystem, replacementMaterial);
+        touchSystem.Initialize(this, cameraSystem);
+        gameEventSystem.Initialize(this, playerData, lightResourceSystem);
     }
 
 //ボタンから呼び出される　ゲームを開始する
     public void GameStart()
     {
         targetObject.SetActive(true);
-        isPlaying = true;
+        gameEventSystem.BeginGame();
         sphereCollider = sphere.GetComponent<SphereCollider>();
         StartCoroutine(FindCatSet());
     }
@@ -159,7 +156,6 @@ public CatData[]  catData;
         /// </summary>
         yield return null; // 猫を順番に生成するための待機時間
         }
-        cameraRotation = mainCamera.transform.localRotation;
     }
 
     /// <summary>
@@ -169,516 +165,45 @@ public CatData[]  catData;
     /// <param name="time">移動にかかる時間</param>
     public void cameraPosChange(bool up, float time)
     {
-        if (catSystem == null)
-        {
-            Debug.LogError("CatPlayer(catSystem)が見つからないため、カメラを移動できません。");
-            return;
-        }
-
-        if (up)
-        {
-            // 初期位置（猫の真上）にカメラを移動
-            mainCamera.transform.DOMove(cameraPos, time);
-            mainCamera.transform.DORotate(cameraRotation.eulerAngles, time);
-            Debug.Log("Move Camera to Up Position");
-        }
-        else
-        {
-            // 猫の正面にカメラを移動
-            Vector3 catPosition = catSystem.transform.position;
-            Vector3 catUp = catSystem.transform.up;
-            Vector3 catForward = catSystem.transform.forward;
-
-            // 正面の位置を計算
-            Vector3 frontPos = catPosition - (catForward * cameraFrontDistance) + (catUp * cameraFrontHeight);
-            // カメラの回転を計算 (猫の方向を向くように)
-            Vector3 directionToCat = (catPosition - frontPos).normalized;
-            Quaternion frontRotation = Quaternion.LookRotation(directionToCat, catUp);
-            mainCamera.transform.DOMove(frontPos, time);
-            mainCamera.transform.DORotate(frontRotation.eulerAngles, time);
-        }
+        if (cameraSystem != null) cameraSystem.ChangeCameraPosition(up, time, catSystem, mainCamera);
     }
 
     void Update()
     {
         if (!isPlaying) return;
-        BetweenCameraAndObject();
+        if (targetLightTransform != null && targetObject != null) targetLightTransform.LookAt(targetObject.transform.position);
+        if (cameraSystem != null) cameraSystem.RefreshObstructions();
 
         if(Input.GetMouseButtonUp(0))
         {
             TouchSystem();
-            lightResourceSystem.UseLightByTouch();
+            if (lightResourceSystem != null) lightResourceSystem.UseLightByTouch();
         }
-        catLightTransform.LookAt(catSystem.transform.position);
-        targetLightTransform.LookAt(targetObject.transform.position);
+        
         //終了処理を確認
         GameEnd();
     }
 
 
-    //オブジェクトとカメラの間にあるオブジェクトを専用のマテリアル（半透明）に置き換える　
-    //オブジェクトとカメラの間、およびカメラと衝突しているオブジェクトを半透明にする
-    void BetweenCameraAndObject()
-    {
-        if (targetObject == null || replacementMaterial == null || mainCamera == null)
-        {
-            // 必要なオブジェクトが設定されていない場合は何もしない
-            return;
-        }
-
-        // 1. 今フレームで遮蔽物となるRendererのリストを新規作成
-        var obstructedRenderersThisFrame = new HashSet<Renderer>();
-        var cameraPosition = mainCamera.transform.position;
-
-        // 1a. カメラとターゲットの間にあるオブジェクトをリストに追加
-        var targetPosition = targetObject.transform.position;
-        var directionToTarget = targetPosition - cameraPosition;
-        foreach (var hit in Physics.RaycastAll(cameraPosition, directionToTarget.normalized, directionToTarget.magnitude, layerMask))
-        {
-            AddAllRenderersFrom(hit.collider.gameObject, obstructedRenderersThisFrame);
-        }
-
-        // 1b. カメラと猫の間にあるオブジェクトをリストに追加
-        if (catSystem != null)
-        {
-            var catPosition = catSystem.transform.position;
-            var directionToCat = catPosition - cameraPosition;
-            foreach (var hit in Physics.RaycastAll(cameraPosition, directionToCat.normalized, directionToCat.magnitude, layerMask))
-            {
-                AddAllRenderersFrom(hit.collider.gameObject, obstructedRenderersThisFrame);
-            }
-        }
-
-        float cameraOverlapRadius = 0.5f;
-        // 1c. カメラと衝突しているオブジェクトをリストに追加 (★ここが追加機能)
-        foreach (var collider in Physics.OverlapSphere(cameraPosition, cameraOverlapRadius, layerMask))
-        {
-            AddAllRenderersFrom(collider.gameObject, obstructedRenderersThisFrame);
-        }
-
-        // 2. 前フレームまで半透明だったが、今フレームでは対象外のオブジェクトのマテリアルを元に戻す
-        var renderersToRestore = new List<Renderer>();
-        foreach (var renderer in originalMaterials.Keys)
-        {
-            if (!obstructedRenderersThisFrame.Contains(renderer))
-            {
-                renderersToRestore.Add(renderer);
-            }
-        }
-        foreach (var renderer in renderersToRestore)
-        {
-            ResetMaterial(renderer, originalMaterials[renderer]);
-            originalMaterials.Remove(renderer);
-        }
-
-        // 3. 今フレームで新たに半透明にするオブジェクトのマテリアルを変更する
-        foreach (var renderer in obstructedRenderersThisFrame)
-        {
-            // すでに半透明になっていなければ処理
-            if (!originalMaterials.ContainsKey(renderer))
-            {
-                // 元のマテリアルを保存
-                originalMaterials.Add(renderer, renderer.materials);
-                // すべてのサブマテリアルを半透明マテリアルに置き換え
-                var newMaterials = new Material[renderer.materials.Length];
-                for (int i = 0; i < newMaterials.Length; i++)
-                {
-                    newMaterials[i] = replacementMaterial;
-                }
-                renderer.materials = newMaterials;
-            }
-        }
-
-        // 4. `currentlyObstructedRenderers` を現在の状態で更新 (元の変数構造を維持するため)
-        currentlyObstructedRenderers = obstructedRenderersThisFrame;
-    }
-
-    void ResetMaterial(Renderer renderer, Material[] originalMaterials)
-    {
-        if (renderer != null)
-        {
-            renderer.materials = originalMaterials;
-        }
-    }
 public void TouchSystem()
-{
-    // 光が残っていない場合は何もしない
-    if (lightResourceSystem == null)
     {
-        Debug.LogError(
-            "LightResourceSystemが設定されていません。"
-        );
-
-        return;
+        if (touchSystem != null) touchSystem.ProcessTouch();
     }
-
-    if (lightResourceSystem.IsDepleted)
-    {
-        Debug.Log(
-            "光が0のため、ターゲットを移動できません。"
-        );
-
-        return;
-    }
-
-
-    if (mainCamera == null)
-    {
-        Debug.LogError(
-            "Main Cameraが設定されていません。"
-        );
-
-        return;
-    }
-
-
-    if (sphereCollider == null)
-    {
-        sphereCollider =
-            sphere.GetComponent<SphereCollider>();
-    }
-
-
-    Vector2 screenPosition =
-        Input.mousePosition;
-
-
-    // --------------------------------------------------
-    // 1. 光システムにタッチ位置を渡す
-    // --------------------------------------------------
-
-    Transform lightTarget = null;
-
-    if (lightTargetSystem != null)
-    {
-        lightTarget =
-            lightTargetSystem.ProcessTouch(
-                screenPosition
-            );
-    }
-
-
-    // --------------------------------------------------
-    // 2. 通常のタッチ位置を取得
-    // --------------------------------------------------
-
-    Ray ray =
-        mainCamera.ScreenPointToRay(
-            screenPosition
-        );
-
-    float maxRayDistance =
-        sphere.transform.lossyScale.x * 5f;
-
-
-    RaycastHit[] allHits =
-        Physics.RaycastAll(
-            ray,
-            maxRayDistance
-        );
-
-
-    Vector3 directionFromCenterToHit =
-        Vector3.zero;
-
-    Vector3 spherePosition =
-        Vector3.zero;
-
-
-    bool foundSurface =
-        false;
-
-
-    if (allHits.Length > 0)
-    {
-        allHits =
-            allHits
-                .OrderBy(h => h.distance)
-                .ToArray();
-
-
-        foreach (
-            RaycastHit hit
-            in allHits)
-        {
-            // タグなしColliderを無視
-            if (hit.collider.CompareTag(
-                    "Untagged"))
-            {
-                continue;
-            }
-
-
-            Vector3 direction =
-                (
-                    hit.point -
-                    sphere.transform.position
-                ).normalized;
-
-
-            directionFromCenterToHit =
-                direction;
-
-
-            float sphereRadius =
-                sphereCollider.radius *
-                GetMaxAbsScale(
-                    sphere.transform.lossyScale
-                );
-
-
-            spherePosition =
-                sphere.transform.position +
-                directionFromCenterToHit *
-                sphereRadius;
-
-
-            foundSurface =
-                true;
-
-            break;
-        }
-    }
-
-
-    // --------------------------------------------------
-    // 3. タッチ地点が取得できなかった場合
-    // --------------------------------------------------
-
-    if (!foundSurface)
-    {
-        // 従来仕様
-        // 画面上部をタッチした場合
-        // 球体反対側を目的地にする
-
-        if (
-            Input.mousePosition.y >
-            Screen.height * 0.7f
-        )
-        {
-            Debug.Log(
-                "画面上部をタッチ。" +
-                "ターゲットを球体反対側へ移動します。"
-            );
-
-
-            directionFromCenterToHit =
-                (
-                    mainCamera.transform.position -
-                    sphere.transform.position
-                ).normalized;
-
-
-            directionFromCenterToHit.z *= -1f;
-
-
-            float sphereRadius =
-                sphereCollider.radius *
-                GetMaxAbsScale(
-                    sphere.transform.lossyScale
-                );
-
-
-            spherePosition =
-                sphere.transform.position +
-                directionFromCenterToHit *
-                sphereRadius;
-
-
-            foundSurface =
-                true;
-        }
-    }
-
-
-    if (!foundSurface)
-    {
-        return;
-    }
-
-
-    // --------------------------------------------------
-    // 4. 猫に近すぎる場所への移動を防止
-    // --------------------------------------------------
-
-    if (catSystem != null)
-    {
-        float minDistanceToMoveTarget =
-            catSystem.moveSpeed * 6f;
-
-
-        float distanceToCat =
-            Vector3.Distance(
-                spherePosition,
-                catSystem.transform.position
-            );
-
-
-        if (
-            distanceToCat <
-            minDistanceToMoveTarget
-        )
-        {
-            Debug.Log(
-                "猫に近すぎるため、" +
-                "ターゲットを移動しません。"
-            );
-
-            return;
-        }
-    }
-
-
-    // --------------------------------------------------
-    // 5. 光が当たった対象がある場合
-    //    タッチ地点ではなく対象を目的地にする
-    // --------------------------------------------------
-
-    if (lightTarget != null)
-    {
-        Debug.Log(
-            "光が当たった対象を目的地に変更: " +
-            lightTarget.name
-        );
-
-
-        targetObject.transform.position =
-            lightTarget.position;
-
-
-        // 対象が球体上にあることを前提に
-        // 球体中心から外側への方向を計算
-        directionFromCenterToHit =
-            (
-                lightTarget.position -
-                sphere.transform.position
-            ).normalized;
-    }
-    else
-    {
-        // --------------------------------------------------
-        // 6. 対象がなければ通常通り
-        //    タッチ地点を目的地にする
-        // --------------------------------------------------
-
-        Debug.Log(
-            "光が当たった対象なし。" +
-            "タッチ地点を目的地にします。"
-        );
-
-
-        targetObject.transform.position =
-            spherePosition;
-    }
-
-
-    // --------------------------------------------------
-    // 7. targetObjectを球体の子にする
-    // --------------------------------------------------
-
-    targetObject.transform.SetParent(
-        sphere.transform
-    );
-
-
-    // --------------------------------------------------
-    // 8. 球体表面に対して正しい向きにする
-    // --------------------------------------------------
-
-    targetObject.transform.up =
-        directionFromCenterToHit;
-
-
-    // --------------------------------------------------
-    // 9. 球体を回転させる
-    // --------------------------------------------------
-
-    RotateSphereToFaceTarget();
-}
 
 public void LostItemTouched()
     {
-        //猫のオブジェクトをtrueにする
-find_LostItem = true;
-findCatObject.SetActive(true);
-Debug.Log("落とし物を拾った後のフラグをtrueに設定しました。 猫が出現しました");
+        if (gameEventSystem != null) gameEventSystem.HandleLostItemFound();
     }
-    // --- RotateSphereToFaceTarget メソッドの修正・追加 ---
-/// <summary>
-/// targetObjectがカメラの正面に来るように球体を滑らかに回転させる
-/// </summary>
-void RotateSphereToFaceTarget()
-{
-    if (sphere == null || targetObject == null || mainCamera == null)
-        return;
-
-    Vector3 sphereCenter = sphere.transform.position;
-
-    Vector3 currentTargetDir =
-        (targetObject.transform.position - sphereCenter).normalized;
-
-    Vector3 goalDir = (transform.up * sphereCollider.radius - sphereCenter).normalized;
-
-    Quaternion rotationToAdd =
-        Quaternion.FromToRotation(currentTargetDir, goalDir);
-
-    Quaternion targetRotation =
-        rotationToAdd * sphere.transform.rotation;
-
-    sphere.transform.DOKill();
-
-    float sphereRotateDuration =
-        Mathf.Clamp(
-            Quaternion.Angle(sphere.transform.rotation, targetRotation) / 180f,
-            2f, 5f);
-
-    sphere.transform
-        .DORotateQuaternion(targetRotation, sphereRotateDuration)
-        .SetEase(Ease.OutCubic)
-        .OnComplete(() =>
-        {
-            // Tween終了時に最終角度を強制的に合わせる
-            sphere.transform.rotation = targetRotation;
-        });
-}
-
-    // ... (GetMaxAbsScale, GameEnd, GameEndCoroutine, SphereSet, AddAllRenderersFrom メソッドは変更なし) ...
-    /// <summary>
-    /// ロススケールの各軸の絶対値の最大値を取得する
-    /// </summary>
-    /// <param name="lossyScale"></param>
-    /// <returns></returns>
-    float GetMaxAbsScale(Vector3 lossyScale)
-    {
-        return Mathf.Max(Mathf.Abs(lossyScale.x), Mathf.Abs(lossyScale.y), Mathf.Abs(lossyScale.z));
-    }
-
     public void GameClear()
     {
-        //ゲームクリア
-        playerData.Save();
-        isPlaying = false;
-        //シーンを再読み込み
-        CatSceneManager.Instantiate().currentSceneLoad();
+        if (gameEventSystem != null) gameEventSystem.HandleGameClear();
     }
     /// <summary>
     /// ゲーム終了処理 失敗
     /// </summary>
     public void GameEnd()
     {
-        //
-        if(!lightResourceSystem.IsDepleted || catSystem.currentState != CatPlayer.AnimState.idle)
-        {
-            /// <summary>
-            /// /猫のアニメーションがまだ動いている場合は、ゲーム終了処理を実行しない
-            /// </summary>
-            return;
-        }
-        Debug.Log("ゲーム終了条件を満たしたため、ゲーム終了処理を実行します。");
-        playerData.Save();
-        isPlaying = false;
-        //シーンを再読み込み
-        CatSceneManager.Instantiate().currentSceneLoad();
+        if (gameEventSystem != null) gameEventSystem.CheckGameEnd();
     }
 
 /// <summary>
@@ -709,6 +234,7 @@ void RotateSphereToFaceTarget()
         GameObject cat = Instantiate(playerData.CatPrefab, insPos, targetObject.transform.rotation);
         cat.transform.SetParent(sphere.transform);
         catSystem = cat.GetComponent<CatPlayer>();
+        if (cameraSystem != null) cameraSystem.SetWorldReferences(mainCamera, targetObject.transform, sphere.transform, catSystem, replacementMaterial);
 
         //猫のデータを取得
         List<CatData> list = new List<CatData>();
@@ -719,15 +245,15 @@ void RotateSphereToFaceTarget()
         }
         if (list.Count == 0)
         {
-            Debug.Log("全ての猫を見つけています");
+            Debug.Log("All cats have been found.");
             if (!playerData.catFound.Contains(sphereSpec.lastCatData))
             {
-                Debug.Log("最後の猫を入れる");
+                Debug.Log("Adding the final cat.");
                 list.Add(sphereSpec.lastCatData);
             }
             else
             {
-                Debug.Log("最後の猫を見つけています");
+                Debug.Log("The final cat has already been found.");
                 list = sphereSpec.findCatsDate;
                 list.Add(sphereSpec.lastCatData);
             }
@@ -739,19 +265,10 @@ void RotateSphereToFaceTarget()
         FindFirstObjectByType<CatUISystem>().PaperSet(sphereSpec);
         // ゲートの位置を球体の表面のランダムな位置に設定
     }
-private void AddAllRenderersFrom(GameObject obj, HashSet<Renderer> rendererSet)
-{
-    // カメラ自身やターゲット、プレイヤーキャラクターは対象外
-    if (obj.transform.IsChildOf(mainCamera.transform) || obj == targetObject || (catSystem != null && obj == catSystem.gameObject))
-    {
-        return;
-    }
-    // 自分自身とすべての子からRendererを取得して追加
-    var renderers = obj.GetComponentsInChildren<Renderer>();
-    foreach (var r in renderers)
-    {
-        rendererSet.Add(r);
-    }
-}
+
 
 }
+
+
+
+

@@ -85,7 +85,7 @@ public class CatSystem : MonoBehaviour
         currentState = AnimState.idle;
         isInSea = false;
         if (seaBoat != null) seaBoat.SetActive(false);
-        moveSpeed = 0.3f;
+        moveSpeed = 0.4f;
         otherHeight = new Dictionary<Collider, float>();
         jumpDifference = 0f;
         distance = 0f;
