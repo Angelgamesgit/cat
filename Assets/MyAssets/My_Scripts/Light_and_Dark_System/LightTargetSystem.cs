@@ -21,20 +21,16 @@ public class LightTargetSystem : MonoBehaviour
     [SerializeField]
     private Camera targetCamera;
 
-
     [Header("Scene Spot Light")]
-
     [Tooltip("シーン上に配置してあるSpot Light")]
     [SerializeField]
-    private Light sceneSpotLight;
+    public Light sceneSpotLight;
 
     [Tooltip("Spot Lightをタッチ方向へ向ける")]
     [SerializeField]
     private bool rotateSpotLight = true;
 
-
     [Header("Spot Light Settings")]
-
     [Tooltip("Spot Lightの照射距離")]
     [SerializeField]
     private float lightRange = 30f;
@@ -84,7 +80,6 @@ public class LightTargetSystem : MonoBehaviour
         private set;
     }
 
-
     /// <summary>
     /// 現在選択されている対象。
     /// 対象が存在しない場合はnull。
@@ -131,10 +126,7 @@ public class LightTargetSystem : MonoBehaviour
         sceneSpotLight.range =
             lightRange;
 
-        sceneSpotLight.spotAngle =
-            lightAngle;
     }
-
 
     /// <summary>
     /// GameSystemから呼び出す。
@@ -156,7 +148,6 @@ public class LightTargetSystem : MonoBehaviour
                 "[LightTargetSystem] " +
                 "Target Cameraが設定されていません。"
             );
-
             return null;
         }
 
@@ -187,9 +178,12 @@ public class LightTargetSystem : MonoBehaviour
         if (hits == null ||
             hits.Length == 0)
         {
+            Debug.Log(
+                "[LightTargetSystem] " +
+                "タッチ地点にColliderが存在しません。"
+            );
             return null;
         }
-
 
         // カメラから近い順に並べる
         System.Array.Sort(
@@ -200,20 +194,16 @@ public class LightTargetSystem : MonoBehaviour
                 )
         );
 
-
         // 最初に見つかった
         // 球体表面などのColliderをタッチ地点として使用
         RaycastHit surfaceHit =
             hits[0];
 
-
         Vector3 touchPosition =
             surfaceHit.point;
 
-
         LastTouchPosition =
             touchPosition;
-
 
         // Spot Lightをタッチ方向へ向ける
         AimSpotLight(
@@ -250,11 +240,8 @@ public class LightTargetSystem : MonoBehaviour
                 );
             }
         }
-
-
         return target;
     }
-
 
     /// <summary>
     /// Spot Lightをカメラから
@@ -267,17 +254,14 @@ public class LightTargetSystem : MonoBehaviour
             return;
         }
 
-
         Transform lightTransform =
             sceneSpotLight.transform;
-
 
         // Spot Lightの位置はシーン上の位置を維持。
         // 位置をカメラに移動させない。
         Vector3 direction =
             targetPosition -
             lightTransform.position;
-
 
         if (direction.sqrMagnitude <
             0.0001f)
@@ -291,7 +275,6 @@ public class LightTargetSystem : MonoBehaviour
                 direction.normalized
             );
     }
-
 
     /// <summary>
     /// Spot Lightの照射範囲内から
@@ -319,7 +302,6 @@ public class LightTargetSystem : MonoBehaviour
         List<Collider> candidates =
             new List<Collider>();
 
-
         for (
             int i = 0;
             i < hitCount;
@@ -334,7 +316,6 @@ public class LightTargetSystem : MonoBehaviour
             {
                 continue;
             }
-
 
             if (!IsInsideSpotLight(
                     collider))
@@ -358,7 +339,6 @@ public class LightTargetSystem : MonoBehaviour
             return null;
         }
 
-
         // 1つだけならそのまま
         if (candidates.Count == 1)
         {
@@ -374,7 +354,6 @@ public class LightTargetSystem : MonoBehaviour
                 touchPosition
             );
         }
-
 
         return candidates[0].transform;
     }
@@ -413,10 +392,7 @@ public class LightTargetSystem : MonoBehaviour
         {
             return true;
         }
-
-
         direction.Normalize();
-
 
         float angle =
             Vector3.Angle(
@@ -428,7 +404,6 @@ public class LightTargetSystem : MonoBehaviour
         return angle <=
             sceneSpotLight.spotAngle * 0.5f;
     }
-
 
     /// <summary>
     /// タッチ地点に最も近い対象を選択。
@@ -472,13 +447,10 @@ public class LightTargetSystem : MonoBehaviour
             }
         }
 
-
         if (nearest == null)
         {
             return null;
         }
-
-
         return nearest.transform;
     }
 
@@ -490,8 +462,7 @@ public class LightTargetSystem : MonoBehaviour
     {
         if (sceneSpotLight != null)
         {
-            sceneSpotLight.enabled =
-                false;
+            sceneSpotLight.enabled = false;
         }
     }
 
@@ -525,8 +496,6 @@ public class LightTargetSystem : MonoBehaviour
         {
             return;
         }
-
-
         Gizmos.color =
             Color.yellow;
 

@@ -109,6 +109,7 @@ public CatData[]  catData;
     {
         cameraSystem.SetWorldReferences(mainCamera, targetObject.transform, sphere.transform, catSystem, replacementMaterial);
         touchSystem.Initialize(this, cameraSystem);
+        gameEventSystem.Initialize(this, playerData);
     }
 
 //ボタンから呼び出される　ゲームを開始する
@@ -176,7 +177,7 @@ public CatData[]  catData;
         {
             TouchSystem();
         }
-        
+
         //終了処理を確認
         GameEnd();
     }
@@ -265,6 +266,7 @@ public void LostItemTouched()
 
 
 }
+
 
 
 

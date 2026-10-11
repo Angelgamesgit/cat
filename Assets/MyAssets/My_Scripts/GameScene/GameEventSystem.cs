@@ -39,7 +39,7 @@ public class GameEventSystem : MonoBehaviour
     // 光切れかつ猫が停止した状態をゲーム終了として扱う。
     public void CheckGameEnd()
     {
-        if (ending || gameSystem == null || !gameSystem.isPlaying || gameSystem.PlayerCat == null) return;
+        if (!ending || gameSystem == null || !gameSystem.isPlaying || gameSystem.PlayerCat == null) return;
         if (gameSystem.PlayerCat.currentState != CatPlayer.AnimState.idle) return;
         ending = true;
         Debug.Log("Game over condition reached.");

@@ -1,10 +1,13 @@
 ﻿using System.Linq;
 using UnityEngine;
+using System.Collections;
 
 public class TouchSystem : MonoBehaviour
 {
     private GameSystem gameSystem;
     private CameraSystem cameraSystem;
+    [SerializeField]
+    int lightAngle;
 
     public void Initialize(GameSystem owner, CameraSystem cameraController)
     {
@@ -60,10 +63,19 @@ public class TouchSystem : MonoBehaviour
         target.SetParent(sphere.transform);
         target.up = direction;
         cameraSystem?.RotateSphereToFaceTarget(sphere.transform, target, sphereCollider.radius, gameSystem.transform);
+        StartCoroutine (LightTargetProcess());
     }
 
     private float GetMaxAbsScale(Vector3 scale)
     {
         return Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+    }
+    IEnumerator LightTargetProcess()
+    {
+        for(int i = 0; i < lightAngle; i++)
+        {
+            gameSystem.LightTargetSystem.sceneSpotLight.spotAngle = (float)i;
+            yield return null;
+        }
     }
 }
