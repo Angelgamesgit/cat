@@ -3,15 +3,12 @@
 public class GameEventSystem : MonoBehaviour
 {
     private GameSystem gameSystem;
-    private PlayerData playerData;
-    private LightResourceSystem lightResourceSystem;
-    private bool ending;
+    private PlayerData playerData;    private bool ending;
 
-    public void Initialize(GameSystem owner, PlayerData data, LightResourceSystem lightSystem)
+    public void Initialize(GameSystem owner, PlayerData data)
     {
         gameSystem = owner;
         playerData = data;
-        lightResourceSystem = lightSystem;
     }
 
     public void BeginGame()
@@ -42,8 +39,8 @@ public class GameEventSystem : MonoBehaviour
     // 光切れかつ猫が停止した状態をゲーム終了として扱う。
     public void CheckGameEnd()
     {
-        if (ending || gameSystem == null || !gameSystem.isPlaying || lightResourceSystem == null || gameSystem.PlayerCat == null) return;
-        if (!lightResourceSystem.IsDepleted || gameSystem.PlayerCat.currentState != CatPlayer.AnimState.idle) return;
+        if (ending || gameSystem == null || !gameSystem.isPlaying || gameSystem.PlayerCat == null) return;
+        if (gameSystem.PlayerCat.currentState != CatPlayer.AnimState.idle) return;
         ending = true;
         Debug.Log("Game over condition reached.");
         if (playerData != null) playerData.Save();

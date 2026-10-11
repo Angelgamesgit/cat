@@ -23,7 +23,6 @@ public class RandomDebuffItem : MonoBehaviour
     // 光回復アイテムの回復割合と光量管理コンポーネントを設定する。
     [Header("Light Recovery")]
     [SerializeField, Range(0f, 1f)] private float lightRecoveryAmount = 0.25f;
-    [SerializeField] private LightResourceSystem lightResourceSystem;
 
     // 行動停止トラップの効果時間と、停止対象を設定する。
     [Header("Movement Trap")]
@@ -67,16 +66,7 @@ public class RandomDebuffItem : MonoBehaviour
                 player.DropCargo();
                 break;
 
-            case EffectType.LightRecoveryItem:
-                if (lightResourceSystem == null)
-                    lightResourceSystem = FindObjectOfType<LightResourceSystem>();
-                if (lightResourceSystem != null)
-                    lightResourceSystem.SetLightRate(lightResourceSystem.LightRate + lightRecoveryAmount);
-                else
-                    Debug.LogWarning($"{name}: LightResourceSystem was not found.", this);
-                onLightRecovered?.Invoke();
-                break;
-
+          
             case EffectType.LightDispelledMovementTrap:
                 onMovementStopped?.Invoke();
                 if (catToDisable == null) catToDisable = FindObjectOfType<CatPlayer>();

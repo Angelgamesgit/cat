@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 
 public class TouchSystem : MonoBehaviour
@@ -15,7 +15,7 @@ public class TouchSystem : MonoBehaviour
     // 画面のタッチ位置を球面上の移動先へ変換し、必要な光判定を行う。
     public void ProcessTouch()
     {
-        if (gameSystem == null || gameSystem.LightResourceSystem == null || gameSystem.LightResourceSystem.IsDepleted) return;
+        if (gameSystem == null) return;
         Camera camera = gameSystem.mainCamera;
         GameObject sphere = gameSystem.sphere;
         Transform target = gameSystem.targetObject != null ? gameSystem.targetObject.transform : null;
@@ -59,7 +59,7 @@ public class TouchSystem : MonoBehaviour
 
         target.SetParent(sphere.transform);
         target.up = direction;
-        cameraSystem?.RotateSphereToFaceTarget(sphere.transform, target, sphereCollider.radius);
+        cameraSystem?.RotateSphereToFaceTarget(sphere.transform, target, sphereCollider.radius, gameSystem.transform);
     }
 
     private float GetMaxAbsScale(Vector3 scale)

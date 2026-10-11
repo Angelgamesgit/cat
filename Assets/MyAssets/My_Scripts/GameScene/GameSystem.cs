@@ -59,11 +59,9 @@ public CatData[]  catData;
     public LostItemData lostItemData;
     [SerializeField]
     Transform catLightTransform,targetLightTransform;
-    [SerializeField]
-    LightResourceSystem lightResourceSystem;
+
     [SerializeField]
     LightTargetSystem lightTargetSystem;
-    public LightResourceSystem LightResourceSystem => lightResourceSystem;
     public LightTargetSystem LightTargetSystem => lightTargetSystem;
     public CatPlayer PlayerCat => catSystem;
 
@@ -111,7 +109,6 @@ public CatData[]  catData;
     {
         cameraSystem.SetWorldReferences(mainCamera, targetObject.transform, sphere.transform, catSystem, replacementMaterial);
         touchSystem.Initialize(this, cameraSystem);
-        gameEventSystem.Initialize(this, playerData, lightResourceSystem);
     }
 
 //ボタンから呼び出される　ゲームを開始する
@@ -156,6 +153,7 @@ public CatData[]  catData;
         /// </summary>
         yield return null; // 猫を順番に生成するための待機時間
         }
+        cameraSystem?.CaptureCurrentRotation();
     }
 
     /// <summary>
@@ -177,7 +175,6 @@ public CatData[]  catData;
         if(Input.GetMouseButtonUp(0))
         {
             TouchSystem();
-            if (lightResourceSystem != null) lightResourceSystem.UseLightByTouch();
         }
         
         //終了処理を確認

@@ -39,8 +39,7 @@ public class UISystem : MonoBehaviour
     public Image darkFadeImage;
     public GameObject itemGetPanel;
 public GameObject KitichenButton;
-[SerializeField]
-LightResourceSystem lightResourceSystem;
+
 [SerializeField]
 Image LightBarImage;
 
@@ -65,15 +64,8 @@ void Awake()
     void Update()
     {
         RingRotate();
-        LightCneck();
     }
-void LightCneck()
-    {
-        if (LightBarImage == null) return;
 
-        float lightRate = lightResourceSystem.LightRate;
-        LightBarImage.fillAmount = lightRate;
-    }
 
     public void SphereChangeOpen()
     {

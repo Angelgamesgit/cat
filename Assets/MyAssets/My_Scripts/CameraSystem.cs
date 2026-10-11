@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -15,13 +15,22 @@ public class CameraSystem : MonoBehaviour
     [SerializeField] private float cameraFrontHeight = 1f;
     [Header("Obstruction Fade")]
     [SerializeField] private Material replacementMaterial;
-    [SerializeField] private LayerMask obstructionMask = -1;
+    [SerializeField] private LayerMask obstructionMask;
     private Transform targetObject;
-    private Transform sphereTransform;
+    
     private CatPlayer playerCat;
     private Vector3 initialCameraPosition;
     private Quaternion initialCameraRotation;
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
+
+    private void Awake()
+    {
+        if (obstructionMask.value == 0)
+        {
+            int objectLayer = LayerMask.NameToLayer("Object");
+            obstructionMask = objectLayer >= 0 ? 1 << objectLayer : Physics.DefaultRaycastLayers;
+        }
+    }
 
     private void Start()
     {
@@ -33,7 +42,7 @@ public class CameraSystem : MonoBehaviour
     {
         if (camera != null) mainCamera = camera;
         targetObject = target;
-        sphereTransform = sphere;
+       
         playerCat = cat;
         if (fadeMaterial != null) replacementMaterial = fadeMaterial;
         CaptureInitialPose();
@@ -64,16 +73,17 @@ public class CameraSystem : MonoBehaviour
         mainCamera.transform.DORotate(frontRotation.eulerAngles, duration);
     }
 
-    public void RotateSphereToFaceTarget(Transform sphere, Transform target, float sphereRadius)
+    public void RotateSphereToFaceTarget(Transform sphere, Transform target, float sphereRadius, Transform orientationReference)
     {
-        if (sphere == null || target == null || playerCat == null) return;
+        if (sphere == null || target == null || orientationReference == null) return;
         Vector3 currentDirection = (target.position - sphere.position).normalized;
-        Vector3 goalDirection = (playerCat.transform.up * sphereRadius - sphere.position).normalized;
+        Vector3 goalDirection = (orientationReference.up * sphereRadius - sphere.position).normalized;
         Quaternion targetRotation = Quaternion.FromToRotation(currentDirection, goalDirection) * sphere.rotation;
         sphere.DOKill();
         float duration = Mathf.Clamp(Quaternion.Angle(sphere.rotation, targetRotation) / 180f, 2f, 5f);
         sphere.DORotateQuaternion(targetRotation, duration).SetEase(Ease.OutCubic).OnComplete(() => sphere.rotation = targetRotation);
     }
+
 
     public void RefreshObstructions()
     {
@@ -100,11 +110,12 @@ public class CameraSystem : MonoBehaviour
             renderer.materials = faded;
         }
     }
-
+//
     private void AddRayObstructions(Vector3 origin, Vector3 destination, HashSet<Renderer> renderers)
     {
         Vector3 direction = destination - origin;
-        foreach (RaycastHit hit in Physics.RaycastAll(origin, direction.normalized, direction.magnitude, obstructionMask))
+        foreach (RaycastHit hit in Physics.RaycastAll
+        (origin, direction.normalized, direction.magnitude, obstructionMask))
             AddRenderers(hit.collider.gameObject, renderers);
     }
 
@@ -112,6 +123,12 @@ public class CameraSystem : MonoBehaviour
     {
         if (source.transform.IsChildOf(mainCamera.transform) || source.transform == targetObject || (playerCat != null && source.transform == playerCat.transform)) return;
         foreach (Renderer renderer in source.GetComponentsInChildren<Renderer>()) renderers.Add(renderer);
+    }
+
+    public void CaptureCurrentRotation()
+    {
+        if (mainCamera == null) return;
+        initialCameraRotation = mainCamera.transform.localRotation;
     }
 
     private void CaptureInitialPose()
@@ -131,3 +148,4 @@ public class CameraSystem : MonoBehaviour
         if (canvas != null) canvas.worldCamera = enableSubCamera ? subCamera : mainCamera;
     }
 }
+
