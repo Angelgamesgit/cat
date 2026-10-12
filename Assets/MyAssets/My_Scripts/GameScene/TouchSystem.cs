@@ -1,13 +1,15 @@
 ﻿using System.Linq;
 using UnityEngine;
 using System.Collections;
-
+using UnityEngine.EventSystems;
 public class TouchSystem : MonoBehaviour
 {
     private GameSystem gameSystem;
     private CameraSystem cameraSystem;
     [SerializeField]
     int lightAngle;
+    [SerializeField]
+    float defaultLightAngle;
 
     public void Initialize(GameSystem owner, CameraSystem cameraController)
     {
@@ -63,6 +65,7 @@ public class TouchSystem : MonoBehaviour
         target.SetParent(sphere.transform);
         target.up = direction;
         cameraSystem?.RotateSphereToFaceTarget(sphere.transform, target, sphereCollider.radius, gameSystem.transform);
+
         StartCoroutine (LightTargetProcess());
     }
 
@@ -72,9 +75,13 @@ public class TouchSystem : MonoBehaviour
     }
     IEnumerator LightTargetProcess()
     {
+        Debug.Log("lightAngle is " + lightAngle);
         for(int i = 0; i < lightAngle; i++)
         {
-            gameSystem.LightTargetSystem.sceneSpotLight.spotAngle = (float)i;
+            Debug.Log("lightAngle is " + i);
+            gameSystem.LightTargetSystem.sceneSpotLight.spotAngle = defaultLightAngle + (float)i;
+            gameSystem.LightTargetSystem.sceneSpotLight.innerSpotAngle = (float)i / 2;
+            
             yield return null;
         }
     }

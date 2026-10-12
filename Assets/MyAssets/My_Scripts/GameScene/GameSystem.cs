@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Collections;
 using Random = UnityEngine.Random;
 using System.Linq;
-using Unity.VisualScripting;
-
 
 //  UI判定に必要
 public class GameSystem : MonoBehaviour
@@ -18,15 +16,11 @@ public class GameSystem : MonoBehaviour
 //落とし物を拾った後かどうかをチェックするフラグ　拾った後がtrue
     public bool find_LostItem;
     public PlayerData playerData;
-
-    [SerializeField]
+    [HideInInspector]
     public GameObject sphere;
+    [HideInInspector]
     public GameObject lostItemPrefab;
     public Camera mainCamera;
-
-
-
-
     //見つける猫のオブジェクト
     [SerializeField]
     GameObject findCatPrefab;
@@ -177,11 +171,9 @@ public CatData[]  catData;
         {
             TouchSystem();
         }
-
         //終了処理を確認
         GameEnd();
     }
-
 
 public void TouchSystem()
     {
