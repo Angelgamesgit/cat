@@ -66,6 +66,9 @@ public class TouchSystem : MonoBehaviour
         target.up = direction;
         cameraSystem?.RotateSphereToFaceTarget(sphere.transform, target, sphereCollider.radius, gameSystem.transform);
 
+        // プレイヤーの照準移動を影猫へ通知し、サーチライトを点灯させる。
+        ShadowCatSystem.NotifyPlayerLightMoved(gameSystem);
+
         StartCoroutine (LightTargetProcess());
     }
 

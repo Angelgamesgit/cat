@@ -11,6 +11,10 @@ public class CatPlayer : CatSystem
 
     private void OnTriggerEnter(UnityEngine.Collider other)
     {
+        // 影猫との接触を影猫システムへ通知する。
+        ShadowCatSystem shadowCat = other.GetComponentInParent<ShadowCatSystem>();
+        if (shadowCat != null) shadowCat.OnPlayerCatTouched(this);
+
         // 落とし物に触れたことをゲームシステムへ通知する。
         if (other.CompareTag("LostItem"))
         {
@@ -32,6 +36,14 @@ if (other.CompareTag("RandomDebuffItem"))
             system.GameClear();
         }
     }
+
+    private void OnCollisionEnter(UnityEngine.Collision collision)
+    {
+        // TriggerではないColliderとの接触にも対応する。
+        ShadowCatSystem shadowCat = collision.collider.GetComponentInParent<ShadowCatSystem>();
+        if (shadowCat != null) shadowCat.OnPlayerCatTouched(this);
+    }
+
     public void DropCargo()
     {
         // 落とし物を落とす処理を実装する。
